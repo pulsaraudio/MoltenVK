@@ -21,13 +21,13 @@
 
 
 #include "MVKCommonEnvironment.h"
+#include "MVKSimd.h"
 #include "mvk_vulkan.h"
 #include <algorithm>
 #include <cassert>
 #include <limits>
 #include <string>
 #include <cassert>
-#include <simd/simd.h>
 #include <type_traits>
 
 
@@ -53,8 +53,8 @@ typedef uint16_t MVKHalfFloat;
 
 /** 2D vertex position and texcoord content. */
 typedef struct {
-	simd::float2 position;
-	simd::float3 texCoord;
+	float2 position;
+	float3 texCoord;
 } MVKVertexPosTex;
 
 

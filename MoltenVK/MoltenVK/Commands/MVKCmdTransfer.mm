@@ -344,31 +344,31 @@ void MVKCmdBlitImage<N>::populateVertices(MVKVertexPosTex* vertices, const VkIma
 
     // Bottom left vertex
     pVtx = &vertices[0];
-    pVtx->position.x = dstBL.x;
-    pVtx->position.y = dstBL.y;
-    pVtx->texCoord.x = srcBL.x;
-    pVtx->texCoord.y = (1.0 - srcBL.y);
+    simd_kfr_flt_v(pVtx->position).x = dstBL.x;
+    simd_kfr_flt_v(pVtx->position).y = dstBL.y;
+    simd_kfr_flt_v(pVtx->texCoord).x = srcBL.x;
+    simd_kfr_flt_v(pVtx->texCoord).y = (1.0 - srcBL.y);
 
     // Bottom right vertex
     pVtx = &vertices[1];
-    pVtx->position.x = dstTR.x;
-    pVtx->position.y = dstBL.y;
-    pVtx->texCoord.x = srcTR.x;
-    pVtx->texCoord.y = (1.0 - srcBL.y);
+    simd_kfr_flt_v(pVtx->position).x = dstTR.x;
+    simd_kfr_flt_v(pVtx->position).y = dstBL.y;
+    simd_kfr_flt_v(pVtx->texCoord).x = srcTR.x;
+    simd_kfr_flt_v(pVtx->texCoord).y = (1.0 - srcBL.y);
 
     // Top left vertex
     pVtx = &vertices[2];
-    pVtx->position.x = dstBL.x;
-    pVtx->position.y = dstTR.y;
-    pVtx->texCoord.x = srcBL.x;
-    pVtx->texCoord.y = (1.0 - srcTR.y);
+    simd_kfr_flt_v(pVtx->position).x = dstBL.x;
+    simd_kfr_flt_v(pVtx->position).y = dstTR.y;
+    simd_kfr_flt_v(pVtx->texCoord).x = srcBL.x;
+    simd_kfr_flt_v(pVtx->texCoord).y = (1.0 - srcTR.y);
 
     // Top right vertex
     pVtx = &vertices[3];
-    pVtx->position.x = dstTR.x;
-    pVtx->position.y = dstTR.y;
-    pVtx->texCoord.x = srcTR.x;
-    pVtx->texCoord.y = (1.0 - srcTR.y);
+    simd_kfr_flt_v(pVtx->position).x = dstTR.x;
+    simd_kfr_flt_v(pVtx->position).y = dstTR.y;
+    simd_kfr_flt_v(pVtx->texCoord).x = srcTR.x;
+    simd_kfr_flt_v(pVtx->texCoord).y = (1.0 - srcTR.y);
 }
 
 template <size_t N>
@@ -532,7 +532,7 @@ void MVKCmdBlitImage<N>::encode(MVKCommandEncoder* cmdEncoder, MVKCommandUse com
                     zIncr = (endZ - startZ) / mvkAbsDiff(do1.z, do0.z);
                     float z = startZ + (isLayeredBlit ? 0.0 : (layIdx + 0.5)) * zIncr;
                     for (uint32_t i = 0; i < kMVKBlitVertexCount; ++i) {
-                        mvkIBR.vertices[i].texCoord.z = z;
+                        simd_kfr_flt_v(mvkIBR.vertices[i].texCoord).z = z;
                     }
                 }
                 [mtlRendEnc pushDebugGroup: @"vkCmdBlitImage"];
@@ -1144,7 +1144,7 @@ uint32_t MVKCmdClearAttachments<N>::getVertexCount(MVKCommandEncoder* cmdEncoder
 
 // Populates the vertices for all clear rectangles within an attachment of the specified size.
 template <size_t N>
-void MVKCmdClearAttachments<N>::populateVertices(MVKCommandEncoder* cmdEncoder, simd::float4* vertices,
+void MVKCmdClearAttachments<N>::populateVertices(MVKCommandEncoder* cmdEncoder, float4* vertices,
 												 float attWidth, float attHeight) {
 	uint32_t vtxIdx = 0;
     for (auto& rect : _clearRects) {
@@ -1156,7 +1156,7 @@ void MVKCmdClearAttachments<N>::populateVertices(MVKCommandEncoder* cmdEncoder, 
 // an attachment of the specified size. Returns the next vertex that needs to be populated.
 template <size_t N>
 uint32_t MVKCmdClearAttachments<N>::populateVertices(MVKCommandEncoder* cmdEncoder,
-													 simd::float4* vertices,
+													 float4* vertices,
 													 uint32_t startVertex,
 													 VkClearRect& clearRect,
 													 float attWidth,
@@ -1175,7 +1175,7 @@ uint32_t MVKCmdClearAttachments<N>::populateVertices(MVKCommandEncoder* cmdEncod
     bottomPos = (bottomPos * 2.0) - 1.0;
     topPos = (topPos * 2.0) - 1.0;
 
-    simd::float4 vtx;
+    float4 vtx;
 
 	uint32_t vtxIdx = startVertex;
 	uint32_t startLayer, endLayer;
@@ -1191,35 +1191,35 @@ uint32_t MVKCmdClearAttachments<N>::populateVertices(MVKCommandEncoder* cmdEncod
 	}
 	for (uint32_t layer = startLayer; layer < endLayer; layer++) {
 
-		vtx.z = 0.0;
-		vtx.w = layer;
+		simd_kfr_flt_v(vtx).z = 0.0;
+		simd_kfr_flt_v(vtx).w = layer;
 
 		// Top left vertex	- First triangle
-		vtx.y = topPos;
-		vtx.x = leftPos;
+		simd_kfr_flt_v(vtx).y = topPos;
+		simd_kfr_flt_v(vtx).x = leftPos;
 		vertices[vtxIdx++] = vtx;
 
 		// Bottom left vertex
-		vtx.y = bottomPos;
-		vtx.x = leftPos;
+		simd_kfr_flt_v(vtx).y = bottomPos;
+		simd_kfr_flt_v(vtx).x = leftPos;
 		vertices[vtxIdx++] = vtx;
 
 		// Bottom right vertex
-		vtx.y = bottomPos;
-		vtx.x = rightPos;
+		simd_kfr_flt_v(vtx).y = bottomPos;
+		simd_kfr_flt_v(vtx).x = rightPos;
 		vertices[vtxIdx++] = vtx;
 
 		// Bottom right vertex	- Second triangle
 		vertices[vtxIdx++] = vtx;
 
 		// Top right vertex
-		vtx.y = topPos;
-		vtx.x = rightPos;
+		simd_kfr_flt_v(vtx).y = topPos;
+		simd_kfr_flt_v(vtx).x = rightPos;
 		vertices[vtxIdx++] = vtx;
 
 		// Top left vertex
-		vtx.y = topPos;
-		vtx.x = leftPos;
+		simd_kfr_flt_v(vtx).y = topPos;
+		simd_kfr_flt_v(vtx).x = leftPos;
 		vertices[vtxIdx++] = vtx;
 	}
 
@@ -1230,8 +1230,8 @@ template <size_t N>
 void MVKCmdClearAttachments<N>::encode(MVKCommandEncoder* cmdEncoder) {
 
 	uint32_t vtxCnt = getVertexCount(cmdEncoder);
-	simd::float4 vertices[vtxCnt];
-	simd::float4 clearColors[kMVKClearAttachmentCount];
+	float4 vertices[vtxCnt];
+	float4 clearColors[kMVKClearAttachmentCount];
 
 	VkExtent2D fbExtent = cmdEncoder->getFramebufferExtent();
 #if MVK_MACOS_OR_IOS

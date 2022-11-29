@@ -253,9 +253,9 @@ public:
 
 protected:
     uint32_t getVertexCount(MVKCommandEncoder* cmdEncoder);
-    void populateVertices(MVKCommandEncoder* cmdEncoder, simd::float4* vertices,
+    void populateVertices(MVKCommandEncoder* cmdEncoder, float4* vertices,
 						  float attWidth, float attHeight);
-	uint32_t populateVertices(MVKCommandEncoder* cmdEncoder, simd::float4* vertices,
+	uint32_t populateVertices(MVKCommandEncoder* cmdEncoder, float4* vertices,
 							  uint32_t startVertex, VkClearRect& clearRect,
 							  float attWidth, float attHeight);
 	virtual VkClearValue& getClearValue(uint32_t attIdx) = 0;

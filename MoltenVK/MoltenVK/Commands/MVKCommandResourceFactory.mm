@@ -68,14 +68,14 @@ id<MTLRenderPipelineState> MVKCommandResourceFactory::newCmdBlitImageMTLRenderPi
     vaDesc.format = MTLVertexFormatFloat2;
     vaDesc.bufferIndex = vtxBuffIdx;
     vaDesc.offset = vtxStride;
-    vtxStride += sizeof(simd::float4);
+    vtxStride += sizeof(float4);
 
     // Vertex texture coords
     vaDesc = vaDescArray[1];
     vaDesc.format = MTLVertexFormatFloat3;
     vaDesc.bufferIndex = vtxBuffIdx;
     vaDesc.offset = vtxStride;
-    vtxStride += sizeof(simd::float4);
+    vtxStride += sizeof(float4);
 
     // Vertex attribute buffer.
     MTLVertexBufferLayoutDescriptorArray* vbDescArray = vtxDesc.layouts;
@@ -145,7 +145,7 @@ id<MTLRenderPipelineState> MVKCommandResourceFactory::newCmdClearMTLRenderPipeli
     vaDesc.format = MTLVertexFormatFloat4;
     vaDesc.bufferIndex = vtxBuffIdx;
     vaDesc.offset = vtxStride;
-    vtxStride += sizeof(simd::float4);
+    vtxStride += sizeof(float4);
 
     // Vertex attribute buffer.
     MTLVertexBufferLayoutDescriptorArray* vbDescArray = vtxDesc.layouts;

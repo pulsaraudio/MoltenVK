@@ -18,23 +18,24 @@
 
 
 #include "MVKCodec.h"
+#include "MVKSimd.h"
 
 #include <algorithm>
-#include <simd/simd.h>
 
-
-using simd::float3;
-using simd::float4;
-using simd::pow;
-using simd::select;
+using simd_or_kfr::pow;
+using simd_or_kfr::select;
 
 static uint32_t pack_float_to_unorm4x8(float4 x) {
-	return ((((uint8_t)(x.r * 255)) & 0x000000ff) | ((((uint8_t)(x.g * 255)) << 8) & 0x0000ff00) |
-		((((uint8_t)(x.b * 255)) & 0x00ff0000) << 16) | ((((uint8_t)(x.a * 255)) << 24) & 0xff000000));
+	return ((((uint8_t)(simd_kfr_flt_v(x).r * 255)) & 0x000000ff) | ((((uint8_t)(simd_kfr_flt_v(x).g * 255)) << 8) & 0x0000ff00) |
+		((((uint8_t)(simd_kfr_flt_v(x).b * 255)) & 0x00ff0000) << 16) | ((((uint8_t)(simd_kfr_flt_v(x).a * 255)) << 24) & 0xff000000));
 }
 
 static float3 unpack_unorm565_to_float(uint16_t x) {
+#if MVK_USE_KFR_SIMD
+    return float3{ ((x >> 11) & 0x1f) / 31.0f, ((x >> 5) & 0x3f) / 63.0f, (x & 0x1f) / 31.0f };
+#else
 	return simd::make_float3(((x >> 11) & 0x1f) / 31.0f, ((x >> 5) & 0x3f) / 63.0f, (x & 0x1f) / 31.0f);
+#endif
 }
 
 
@@ -123,3 +124,4 @@ bool mvkCanDecodeFormat(VkFormat format) {
 		return false;
 	}
 }
+

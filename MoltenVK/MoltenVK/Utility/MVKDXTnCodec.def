@@ -72,7 +72,11 @@ MVK_DECOMPRESS_CODE(
 	}
 
 	static float3 sRGBCorrect(float3 colour) {
+#if MVK_USE_KFR_SIMD
+		return select(colour <= 0.04045, pow((colour + 0.055)/1.055, float3(2.4)), colour/12.92);
+#else
 		return select(pow((colour + 0.055)/1.055, float3(2.4)), colour/12.92, colour <= 0.04045);
+#endif
 	}
 
 	static void decompressDXTnBlock(const device void* pSrc, thread void* pDest, VkExtent2D extent, VkDeviceSize destRowPitch, VkFormat format) {
@@ -115,12 +119,12 @@ MVK_DECOMPRESS_CODE(
 					alpha = alphaTable[(alphaBits >> (y * 12 + x * 3)) & 0x7];
 				}
 				float4 colour;
-				colour.rgb = colourTable[colourIndex];
+				simd_kfr_flt_v(colour).rgb = simd_kfr_flt_v(colourTable[colourIndex]);
 				if (isSRGBFormat(format)) {
 					// Convert sRGB back to linear.
-					colour.rgb = sRGBCorrect(colour.rgb);
+					simd_kfr_flt_v(colour).rgb = simd_kfr_flt_v(sRGBCorrect(simd_kfr_flt_v(colour).rgb));
 				}
-				colour.a = alpha;
+				simd_kfr_flt_v(colour).a = alpha;
 				pDestRow[x] = pack_float_to_unorm4x8(colour);
 			}
 		}
