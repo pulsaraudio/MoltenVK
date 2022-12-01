@@ -32,7 +32,13 @@ using namespace std;
 MVKOSVersion mvkOSVersion() {
 	static MVKOSVersion _mvkOSVersion = 0;
 	if ( !_mvkOSVersion ) {
-		NSOperatingSystemVersion osVer = [[NSProcessInfo processInfo] operatingSystemVersion];
+        // MoltenVK has been modified to compile for 10.9 at least. Of course,
+        // if will not run on macOS < 10.11 so this default version number is not that important.
+        NSOperatingSystemVersion osVer {0, 0, 0};
+        if (@available(macOS 10.10, ios 8.0, *))
+        {
+            osVer = [[NSProcessInfo processInfo] operatingSystemVersion];
+        }
 		_mvkOSVersion = mvkMakeOSVersion((uint32_t)osVer.majorVersion, (uint32_t)osVer.minorVersion, (uint32_t)osVer.patchVersion);
 	}
 	return _mvkOSVersion;
