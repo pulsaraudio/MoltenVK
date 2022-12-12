@@ -34,6 +34,28 @@ using namespace std;
 
 static MVKPixelFormats _platformPixelFormats;
 
+MVK_PUBLIC_SYMBOL bool mvkIsSupported() {
+    enum class SupportStatus { compute, supported, unsupported };
+    static SupportStatus result { SupportStatus::compute }; // compute the status only once
+    if (result == SupportStatus::compute)
+    {
+        id<MTLDevice> mtlDevice = nullptr;
+        if (@available(macOS 10.11, ios 8.0, *))
+        {
+#if MVK_IOS_OR_TVOS
+            mtlDevice = MTLCreateSystemDefaultDevice();
+#elif MVK_MACOS
+            NSArray<id<MTLDevice>>* mtlDevices = MTLCopyAllDevices();
+            mtlDevice = [mtlDevices count] > 0 ? [mtlDevices[0] retain] : MTLCreateSystemDefaultDevice();
+            [mtlDevices release];
+#endif
+        }
+        result = mtlDevice ? SupportStatus::supported : SupportStatus::unsupported;
+        [mtlDevice release];
+    }
+    return result == SupportStatus::supported;
+}
+
 MVK_PUBLIC_SYMBOL bool mvkVkFormatIsSupported(VkFormat vkFormat) {
 	return _platformPixelFormats.isSupported(vkFormat);
 }

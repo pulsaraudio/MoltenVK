@@ -1436,7 +1436,7 @@ void MVKPixelFormats::modifyMTLFormatCapabilities() {
         {
 #if MVK_IOS_OR_TVOS
             mtlDevice = MTLCreateSystemDefaultDevice();	// temp retained
-#elsif MVK_MACOS
+#elif MVK_MACOS
             NSArray<id<MTLDevice>>* mtlDevices = MTLCopyAllDevices();	// temp retained
             mtlDevice = [mtlDevices count] > 0 ? [mtlDevices[0] retain] : MTLCreateSystemDefaultDevice();			// temp retained
             [mtlDevices release];				// temp release

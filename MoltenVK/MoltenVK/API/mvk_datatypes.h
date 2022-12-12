@@ -57,16 +57,22 @@ typedef enum {
     kMVKFormatCompressed,       /**< A block-compressed color. */
 } MVKFormatType;
 
+
+/** Returns whether mvk is supporetd on this machine (depends if a Metal device is available) */
+bool mvkIsSupported();
+
 /** Returns whether the VkFormat is supported by this implementation. */
 bool mvkVkFormatIsSupported(VkFormat vkFormat);
 
 /** Returns whether the MTLPixelFormat is supported by this implementation. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 bool mvkMTLPixelFormatIsSupported(MTLPixelFormat mtlFormat);
 
 /** Returns the format type corresponding to the specified Vulkan VkFormat, */
 MVKFormatType mvkFormatTypeFromVkFormat(VkFormat vkFormat);
 
 /** Returns the format type corresponding to the specified Metal MTLPixelFormat, */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MVKFormatType mvkFormatTypeFromMTLPixelFormat(MTLPixelFormat mtlFormat);
 
 /**
@@ -84,12 +90,14 @@ MVKFormatType mvkFormatTypeFromMTLPixelFormat(MTLPixelFormat mtlFormat);
  * On an macOS device that has more than one GPU, one of the GPU's may support the
  * MTLPixelFormatDepth24Unorm_Stencil8 pixel format while another may not.
  */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLPixelFormat mvkMTLPixelFormatFromVkFormat(VkFormat vkFormat);
 
 /**
  * Returns the Vulkan VkFormat corresponding to the specified Metal MTLPixelFormat,
  * or returns VK_FORMAT_UNDEFINED if no corresponding VkFormat exists.
  */
+API_AVAILABLE(macos(10.11), ios(8.0))
 VkFormat mvkVkFormatFromMTLPixelFormat(MTLPixelFormat mtlFormat);
 
 /**
@@ -98,10 +106,11 @@ VkFormat mvkVkFormatFromMTLPixelFormat(MTLPixelFormat mtlFormat);
  */
 uint32_t mvkVkFormatBytesPerBlock(VkFormat vkFormat);
 
-/** 
+/**
  * Returns the size, in bytes, of a texel block of the specified Metal format.
  * For uncompressed formats, the returned value corresponds to the size in bytes of a single texel.
  */
+API_AVAILABLE(macos(10.11), ios(8.0))
 uint32_t mvkMTLPixelFormatBytesPerBlock(MTLPixelFormat mtlFormat);
 
 /**
@@ -114,6 +123,7 @@ VkExtent2D mvkVkFormatBlockTexelSize(VkFormat vkFormat);
  * Returns the size of the compression block, measured in texels for a Metal format.
  * The returned value will be {1, 1} for non-compressed formats.
  */
+API_AVAILABLE(macos(10.11), ios(8.0))
 VkExtent2D mvkMTLPixelFormatBlockTexelSize(MTLPixelFormat mtlFormat);
 
 /**
@@ -126,6 +136,7 @@ float mvkVkFormatBytesPerTexel(VkFormat vkFormat);
  * Returns the size, in bytes, of a texel of the specified Metal format.
  * The returned value may be fractional for certain compressed formats.
  */
+API_AVAILABLE(macos(10.11), ios(8.0))
 float mvkMTLPixelFormatBytesPerTexel(MTLPixelFormat mtlFormat);
 
 /**
@@ -144,6 +155,7 @@ size_t mvkVkFormatBytesPerRow(VkFormat vkFormat, uint32_t texelsPerRow);
  * and texelsPerRow should specify the width in texels, not blocks. The result is rounded
  * up if texelsPerRow is not an integer multiple of the compression block width.
  */
+API_AVAILABLE(macos(10.11), ios(8.0))
 size_t mvkMTLPixelFormatBytesPerRow(MTLPixelFormat mtlFormat, uint32_t texelsPerRow);
 
 /**
@@ -161,6 +173,7 @@ size_t mvkVkFormatBytesPerLayer(VkFormat vkFormat, size_t bytesPerRow, uint32_t 
  * and texelRowsPerLayer should specify the height in texels, not blocks. The result is
  * rounded up if texelRowsPerLayer is not an integer multiple of the compression block height.
  */
+API_AVAILABLE(macos(10.11), ios(8.0))
 size_t mvkMTLPixelFormatBytesPerLayer(MTLPixelFormat mtlFormat, size_t bytesPerRow, uint32_t texelRowsPerLayer);
 
 /** Returns the default properties for the specified Vulkan format. */
@@ -170,6 +183,7 @@ VkFormatProperties mvkVkFormatProperties(VkFormat vkFormat);
 const char* mvkVkFormatName(VkFormat vkFormat);
 
 /** Returns the name of the specified Metal pixel format. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 const char* mvkMTLPixelFormatName(MTLPixelFormat mtlFormat);
 
 /**
@@ -186,29 +200,37 @@ double mvkMTLClearDepthFromVkClearValue(VkClearValue vkClearValue);
 uint32_t mvkMTLClearStencilFromVkClearValue(VkClearValue vkClearValue);
 
 /** Returns whether the specified Metal MTLPixelFormat can be used as a depth format. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 bool mvkMTLPixelFormatIsDepthFormat(MTLPixelFormat mtlFormat);
 
 /** Returns whether the specified Metal MTLPixelFormat can be used as a stencil format. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 bool mvkMTLPixelFormatIsStencilFormat(MTLPixelFormat mtlFormat);
 
 /** Returns whether the specified Metal MTLPixelFormat is a PVRTC format. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 bool mvkMTLPixelFormatIsPVRTCFormat(MTLPixelFormat mtlFormat);
 
 /** Returns the Metal texture type from the specified Vulkan image properties. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLTextureType mvkMTLTextureTypeFromVkImageType(VkImageType vkImageType,
 												uint32_t arraySize,
 												bool isMultisample);
 
 /** Returns the Vulkan image type from the Metal texture type. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 VkImageType mvkVkImageTypeFromMTLTextureType(MTLTextureType mtlTextureType);
 
 /** Returns the Metal MTLTextureType corresponding to the Vulkan VkImageViewType. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLTextureType mvkMTLTextureTypeFromVkImageViewType(VkImageViewType vkImageViewType, bool isMultisample);
 
 /** Returns the Metal texture usage from the Vulkan image usage taking into considertion usage limits for the pixel format. */
+API_AVAILABLE(macos(10.11), ios(9.0))
 MTLTextureUsage mvkMTLTextureUsageFromVkImageUsageFlags(VkImageUsageFlags vkImageUsageFlags, MTLPixelFormat mtlPixFmt);
 
 /** Returns the Vulkan image usage from the Metal texture usage and format. */
+API_AVAILABLE(macos(10.11), ios(9.0))
 VkImageUsageFlags mvkVkImageUsageFlagsFromMTLTextureUsage(MTLTextureUsage mtlUsage, MTLPixelFormat mtlFormat);
 
 /**
@@ -222,9 +244,11 @@ uint32_t mvkSampleCountFromVkSampleCountFlagBits(VkSampleCountFlagBits vkSampleC
 VkSampleCountFlagBits mvkVkSampleCountFlagBitsFromSampleCount(NSUInteger sampleCount);
 
 /** Returns the Metal texture swizzle from the Vulkan component swizzle. */
+API_AVAILABLE(macos(10.15), ios(13.0))
 MTLTextureSwizzle mvkMTLTextureSwizzleFromVkComponentSwizzle(VkComponentSwizzle vkSwizzle);
 
 /** Returns all four Metal texture swizzles from the Vulkan component mapping. */
+API_AVAILABLE(macos(10.15), ios(13.0))
 MTLTextureSwizzleChannels mvkMTLTextureSwizzleChannelsFromVkComponentMapping(VkComponentMapping vkMapping);
 
 
@@ -287,6 +311,7 @@ VkExtent3D mvkMipmapBaseSizeFromLevelSize3D(VkExtent3D levelSize, uint32_t level
 #pragma mark Samplers
 
 /** Returns the Metal MTLSamplerAddressMode corresponding to the specified Vulkan VkSamplerAddressMode. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLSamplerAddressMode mvkMTLSamplerAddressModeFromVkSamplerAddressMode(VkSamplerAddressMode vkMode);
 
 #if MVK_MACOS_OR_IOS
@@ -294,6 +319,7 @@ MTLSamplerAddressMode mvkMTLSamplerAddressModeFromVkSamplerAddressMode(VkSampler
  * Returns the Metal MTLSamplerBorderColor corresponding to the specified Vulkan VkBorderColor,
  * or returns MTLSamplerBorderColorTransparentBlack if no corresponding MTLSamplerBorderColor exists.
  */
+API_AVAILABLE(macos(10.12), ios(14.0))
 MTLSamplerBorderColor mvkMTLSamplerBorderColorFromVkBorderColor(VkBorderColor vkColor);
 #endif
 
@@ -301,12 +327,14 @@ MTLSamplerBorderColor mvkMTLSamplerBorderColorFromVkBorderColor(VkBorderColor vk
  * Returns the Metal MTLSamplerMinMagFilter corresponding to the specified Vulkan VkFilter,
  * or returns MTLSamplerMinMagFilterNearest if no corresponding MTLSamplerMinMagFilter exists.
  */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLSamplerMinMagFilter mvkMTLSamplerMinMagFilterFromVkFilter(VkFilter vkFilter);
 
 /**
  * Returns the Metal MTLSamplerMipFilter corresponding to the specified Vulkan VkSamplerMipmapMode,
  * or returns MTLSamplerMipFilterNotMipmapped if no corresponding MTLSamplerMipFilter exists.
  */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLSamplerMipFilter mvkMTLSamplerMipFilterFromVkSamplerMipmapMode(VkSamplerMipmapMode vkMode);
 
 
@@ -325,46 +353,59 @@ typedef enum {
 } MVKShaderStage;
 
 /** Returns the Metal MTLColorWriteMask corresponding to the specified Vulkan VkColorComponentFlags. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLColorWriteMask mvkMTLColorWriteMaskFromVkChannelFlags(VkColorComponentFlags vkWriteFlags);
 
 /** Returns the Metal MTLBlendOperation corresponding to the specified Vulkan VkBlendOp. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLBlendOperation mvkMTLBlendOperationFromVkBlendOp(VkBlendOp vkBlendOp);
 
 /** Returns the Metal MTLBlendFactor corresponding to the specified Vulkan VkBlendFactor. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLBlendFactor mvkMTLBlendFactorFromVkBlendFactor(VkBlendFactor vkBlendFactor);
 
 /**
  * Returns the Metal MTLVertexFormat corresponding to the specified
  * Vulkan VkFormat as used as a vertex attribute format.
  */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLVertexFormat mvkMTLVertexFormatFromVkFormat(VkFormat vkFormat);
 
 /** Returns the Metal MTLVertexStepFunction corresponding to the specified Vulkan VkVertexInputRate. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLVertexStepFunction mvkMTLVertexStepFunctionFromVkVertexInputRate(VkVertexInputRate vkVtxStep);
 
 /** Returns the Metal MTLStepFunction corresponding to the specified Vulkan VkVertexInputRate. */
+API_AVAILABLE(macos(10.12), ios(10.0))
 MTLStepFunction mvkMTLStepFunctionFromVkVertexInputRate(VkVertexInputRate vkVtxStep, bool forTess = false);
 
 /** Returns the Metal MTLPrimitiveType corresponding to the specified Vulkan VkPrimitiveTopology. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLPrimitiveType mvkMTLPrimitiveTypeFromVkPrimitiveTopology(VkPrimitiveTopology vkTopology);
 
 /** Returns the Metal MTLPrimitiveTopologyClass corresponding to the specified Vulkan VkPrimitiveTopology. */
+API_AVAILABLE(macos(10.11), ios(12.0))
 MTLPrimitiveTopologyClass mvkMTLPrimitiveTopologyClassFromVkPrimitiveTopology(VkPrimitiveTopology vkTopology);
 
 /** Returns the Metal MTLTriangleFillMode corresponding to the specified Vulkan VkPolygonMode, */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLTriangleFillMode mvkMTLTriangleFillModeFromVkPolygonMode(VkPolygonMode vkFillMode);
 
 /** Returns the Metal MTLLoadAction corresponding to the specified Vulkan VkAttachmentLoadOp. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLLoadAction mvkMTLLoadActionFromVkAttachmentLoadOp(VkAttachmentLoadOp vkLoadOp);
 
 /** Returns the Metal MTLStoreAction corresponding to the specified Vulkan VkAttachmentStoreOp. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLStoreAction mvkMTLStoreActionFromVkAttachmentStoreOp(VkAttachmentStoreOp vkStoreOp, bool hasResolveAttachment, bool canResolveFormat = true);
 
 /** Returns the Metal MTLMultisampleDepthResolveFilter corresponding to the specified Vulkan VkResolveModeFlagBits. */
+API_AVAILABLE(macos(10.14))
 MTLMultisampleDepthResolveFilter mvkMTLMultisampleDepthResolveFilterFromVkResolveModeFlagBits(VkResolveModeFlagBits vkResolveMode);
 
 #if MVK_MACOS_OR_IOS
 /** Returns the Metal MTLMultisampleStencilResolveFilter corresponding to the specified Vulkan VkResolveModeFlagBits. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLMultisampleStencilResolveFilter mvkMTLMultisampleStencilResolveFilterFromVkResolveModeFlagBits(VkResolveModeFlagBits vkResolveMode);
 #endif
 
@@ -375,21 +416,27 @@ MTLViewport mvkMTLViewportFromVkViewport(VkViewport vkViewport);
 MTLScissorRect mvkMTLScissorRectFromVkRect2D(VkRect2D vkRect);
 
 /** Returns the Metal MTLCompareFunction corresponding to the specified Vulkan VkCompareOp, */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLCompareFunction mvkMTLCompareFunctionFromVkCompareOp(VkCompareOp vkOp);
 
 /** Returns the Metal MTLStencilOperation corresponding to the specified Vulkan VkStencilOp, */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLStencilOperation mvkMTLStencilOperationFromVkStencilOp(VkStencilOp vkOp);
 
 /** Returns the Metal MTLCullMode corresponding to the specified Vulkan VkCullModeFlags, */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLCullMode mvkMTLCullModeFromVkCullModeFlags(VkCullModeFlags vkCull);
 
 /** Returns the Metal MTLWinding corresponding to the specified Vulkan VkFrontFace, */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLWinding mvkMTLWindingFromVkFrontFace(VkFrontFace vkWinding);
 
 /** Returns the Metal MTLIndexType corresponding to the specified Vulkan VkIndexType, */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLIndexType mvkMTLIndexTypeFromVkIndexType(VkIndexType vkIdxType);
 
 /** Returns the size, in bytes, of a vertex index of the specified type. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 size_t mvkMTLIndexTypeSizeInBytes(MTLIndexType mtlIdxType);
 
 /** Returns the MoltenVK MVKShaderStage corresponding to the specified Vulkan VkShaderStageFlagBits. */
@@ -399,18 +446,22 @@ MVKShaderStage mvkShaderStageFromVkShaderStageFlagBits(VkShaderStageFlagBits vkS
 VkShaderStageFlagBits mvkVkShaderStageFlagBitsFromMVKShaderStage(MVKShaderStage mvkStage);
 
 /** Returns the Metal MTLWinding corresponding to the specified SPIR-V spv::ExecutionMode. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLWinding mvkMTLWindingFromSpvExecutionMode(uint32_t spvMode);
 
 /** Returns the Metal MTLTessellationPartitionMode corresponding to the specified SPIR-V spv::ExecutionMode. */
+API_AVAILABLE(macos(10.12), ios(10.0))
 MTLTessellationPartitionMode mvkMTLTessellationPartitionModeFromSpvExecutionMode(uint32_t spvMode);
 
 /**
  * Returns the combination of Metal MTLRenderStage bits corresponding to the specified Vulkan VkPiplineStageFlags,
  * taking into consideration whether the barrier is to be placed before or after the specified pipeline stages.
  */
+API_AVAILABLE(macos(10.13), ios(10.0))
 MTLRenderStages mvkMTLRenderStagesFromVkPipelineStageFlags(VkPipelineStageFlags vkStages, bool placeBarrierBefore);
 
 /** Returns the combination of Metal MTLBarrierScope bits corresponding to the specified Vulkan VkAccessFlags. */
+API_AVAILABLE(macos(10.14), ios(12.0))
 MTLBarrierScope mvkMTLBarrierScopeFromVkAccessFlags(VkAccessFlags vkAccess);
 
 #pragma mark -
@@ -469,12 +520,15 @@ static inline VkExtent3D mvkVkExtent3DFromMTLSize(MTLSize mtlSize) {
 #define MVK_VK_MEMORY_TYPE_METAL_MEMORYLESS	(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)
 
 /** Returns the Metal storage mode corresponding to the specified Vulkan memory flags. */
+API_AVAILABLE(macos(10.11), ios(9.0))
 MTLStorageMode mvkMTLStorageModeFromVkMemoryPropertyFlags(VkMemoryPropertyFlags vkFlags);
 
 /** Returns the Metal CPU cache mode corresponding to the specified Vulkan memory flags. */
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLCPUCacheMode mvkMTLCPUCacheModeFromVkMemoryPropertyFlags(VkMemoryPropertyFlags vkFlags);
 
 /** Returns the Metal resource option flags corresponding to the Metal storage mode and cache mode. */
+API_AVAILABLE(macos(10.11), ios(9.0))
 MTLResourceOptions mvkMTLResourceOptions(MTLStorageMode mtlStorageMode, MTLCPUCacheMode mtlCPUCacheMode);
 
 
