@@ -73,9 +73,12 @@ typedef struct {                                                                
     int32_t z;                                                                                                  \n\
 } __attribute__((packed)) VkOffset3D;                                                                           \n\
                                                                                                                 \n"
+#pragma push_macro("MVK_USE_KFR_SIMD")
+#define MVK_USE_KFR_SIMD 0
 #define MVK_DECOMPRESS_CODE(...) #__VA_ARGS__
 #include "MVKDXTnCodec.def"
 #undef MVK_DECOMPRESS_CODE
+#pragma pop_macro("MVK_USE_KFR_SIMD")
 "\n\
                                                                                                                 \n\
 vertex VaryingsPosTex vtxCmdBlitImage(AttributesPosTex attributes [[stage_in]]) {                               \n\

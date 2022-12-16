@@ -119,12 +119,21 @@ MVK_DECOMPRESS_CODE(
 					alpha = alphaTable[(alphaBits >> (y * 12 + x * 3)) & 0x7];
 				}
 				float4 colour;
+#if MVK_USE_KFR_SIMD
 				simd_kfr_flt_v(colour).rgb = simd_kfr_flt_v(colourTable[colourIndex]);
 				if (isSRGBFormat(format)) {
 					// Convert sRGB back to linear.
 					simd_kfr_flt_v(colour).rgb = simd_kfr_flt_v(sRGBCorrect(simd_kfr_flt_v(colour).rgb));
 				}
 				simd_kfr_flt_v(colour).a = alpha;
+#else
+				colour.rgb = colourTable[colourIndex];
+				if (isSRGBFormat(format)) {
+					// Convert sRGB back to linear.
+					colour.rgb = sRGBCorrect(colour.rgb);
+				}
+				colour.a = alpha;
+#endif
 				pDestRow[x] = pack_float_to_unorm4x8(colour);
 			}
 		}
