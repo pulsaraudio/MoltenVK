@@ -24,7 +24,6 @@
 #include "MVKBuffer.h"
 #include "MVKFramebuffer.h"
 #include "MVKRenderPass.h"
-#include "MTLRenderPassDescriptor+MoltenVK.h"
 #include "MVKEnvironment.h"
 #include "mvk_datatypes.hpp"
 #include <algorithm>
@@ -490,7 +489,9 @@ void MVKCmdBlitImage<N>::encode(MVKCommandEncoder* cmdEncoder, MVKCommandUse com
             }
             if (isLayeredBlit) {
                 // In this case, I can blit all layers at once with a layered draw.
-                mtlRPD.renderTargetArrayLengthMVK = layCnt;
+                if (@available(macos 10.11, ios 12.0, tvos 14.5, *)) {
+                    mtlRPD.renderTargetArrayLength = layCnt;
+                }
                 layCnt = 1;     // Only need to run the loop once.
             }
             for (uint32_t layIdx = 0; layIdx < layCnt; layIdx++) {
@@ -578,7 +579,14 @@ void MVKCmdBlitImage<N>::encode(MVKCommandEncoder* cmdEncoder, MVKCommandUse com
                 texSubRez.lod = mvkIBR.region.srcSubresource.mipLevel;
                 cmdEncoder->setFragmentBytes(mtlRendEnc, &texSubRez, sizeof(texSubRez), 0);
 
-                NSUInteger instanceCount = isLayeredBlit ? mtlRPD.renderTargetArrayLengthMVK : 1;
+                NSUInteger instanceCount = 1;
+                if (isLayeredBlit) {
+                    if (@available(macos 10.11, ios 12.0, tvos 14.5, *)) {
+                        instanceCount = mtlRPD.renderTargetArrayLength;
+                    } else {
+                        instanceCount = 0;
+                    }
+                }
                 [mtlRendEnc drawPrimitives: MTLPrimitiveTypeTriangleStrip vertexStart: 0 vertexCount: kMVKBlitVertexCount instanceCount: instanceCount];
                 [mtlRendEnc popDebugGroup];
                 [mtlRendEnc endEncoding];
@@ -754,9 +762,11 @@ void MVKCmdResolveImage<N>::encode(MVKCommandEncoder* cmdEncoder) {
 		mtlColorAttDesc.slice = rslvSlice.srcSubresource.baseArrayLayer;
 		mtlColorAttDesc.resolveLevel = rslvSlice.dstSubresource.mipLevel;
 		mtlColorAttDesc.resolveSlice = rslvSlice.dstSubresource.baseArrayLayer;
-		if (rslvSlice.dstSubresource.layerCount > 1) {
-			mtlRPD.renderTargetArrayLengthMVK = rslvSlice.dstSubresource.layerCount;
-		}
+        if (@available(macos 10.11, ios 12.0, tvos 14.5, *)) {
+            if (rslvSlice.dstSubresource.layerCount > 1) {
+                mtlRPD.renderTargetArrayLength = rslvSlice.dstSubresource.layerCount;
+            }
+        }
 		id<MTLRenderCommandEncoder> mtlRendEnc = [cmdEncoder->_mtlCmdBuffer renderCommandEncoderWithDescriptor: mtlRPD];
 		setLabelIfNotNil(mtlRendEnc, mvkMTLRenderCommandEncoderLabel(kMVKCommandUseResolveImage));
 
@@ -1235,15 +1245,17 @@ void MVKCmdClearAttachments<N>::encode(MVKCommandEncoder* cmdEncoder) {
 
 	VkExtent2D fbExtent = cmdEncoder->getFramebufferExtent();
 #if MVK_MACOS_OR_IOS
+    if (@available(macos 10.15, ios 11.0, tvos 14.5, macCatalyst 13.0, *)) {
 	// I need to know if the 'renderTargetWidth' and 'renderTargetHeight' properties
 	// actually do something, but [MTLRenderPassDescriptor instancesRespondToSelector: @selector(renderTargetWidth)]
 	// returns NO even on systems that do support it. So we have to check an actual instance.
-	MTLRenderPassDescriptor* tempRPDesc = [MTLRenderPassDescriptor new];	// temp retain
-	if ([tempRPDesc respondsToSelector: @selector(renderTargetWidth)]) {
-		VkRect2D renderArea = cmdEncoder->clipToRenderArea({{0, 0}, fbExtent});
-		fbExtent = {renderArea.offset.x + renderArea.extent.width, renderArea.offset.y + renderArea.extent.height};
-	}
-	[tempRPDesc release];													// temp release
+        MTLRenderPassDescriptor* tempRPDesc = [MTLRenderPassDescriptor new];	// temp retain
+        if ([tempRPDesc respondsToSelector: @selector(renderTargetWidth)]) {
+            VkRect2D renderArea = cmdEncoder->clipToRenderArea({{0, 0}, fbExtent});
+            fbExtent = {renderArea.offset.x + renderArea.extent.width, renderArea.offset.y + renderArea.extent.height};
+        }
+        [tempRPDesc release];													// temp release
+    }
 #endif
 	populateVertices(cmdEncoder, vertices, fbExtent.width, fbExtent.height);
 
@@ -1497,10 +1509,11 @@ void MVKCmdClearImage<N>::encode(MVKCommandEncoder* cmdEncoder) {
                     mtlRPDADesc.slice = layerStart;
                     mtlRPSADesc.slice = layerStart;
                 }
-                mtlRPDesc.renderTargetArrayLengthMVK = (layerCnt == VK_REMAINING_ARRAY_LAYERS
+                if (@available(macos 10.11, ios 12.0, tvos 14.5, *)) {
+                    mtlRPDesc.renderTargetArrayLength = (layerCnt == VK_REMAINING_ARRAY_LAYERS
                                                         ? (_image->getLayerCount() - layerStart)
                                                         : layerCnt);
-
+                }
                 id<MTLRenderCommandEncoder> mtlRendEnc = [cmdEncoder->_mtlCmdBuffer renderCommandEncoderWithDescriptor: mtlRPDesc];
                 setLabelIfNotNil(mtlRendEnc, mtlRendEncName);
                 [mtlRendEnc endEncoding];
