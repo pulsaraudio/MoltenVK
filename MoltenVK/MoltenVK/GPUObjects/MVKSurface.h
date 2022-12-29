@@ -23,7 +23,7 @@
 #include <mutex>
 
 #import <Metal/Metal.h>
-#import <QuartzCore/CAMetalLayer.h>
+#import "CAMetalLayer+MoltenVK.h"
 
 #ifdef VK_USE_PLATFORM_IOS_MVK
 #	define PLATFORM_VIEW_CLASS	UIView
@@ -57,7 +57,7 @@ public:
 	MVKInstance* getInstance() override { return _mvkInstance; }
 
     /** Returns the CAMetalLayer underlying this surface.  */
-    inline CAMetalLayer* getCAMetalLayer() {
+    inline MVK_OBJC_CLASS(CAMetalLayer)* getCAMetalLayer() {
         std::lock_guard<std::mutex> lock(_lock);
         return _mtlCAMetalLayer;
     }
@@ -80,7 +80,7 @@ protected:
 	void initLayerObserver();
 
 	MVKInstance* _mvkInstance;
-	CAMetalLayer* _mtlCAMetalLayer;
+	MVK_OBJC_CLASS(CAMetalLayer)* _mtlCAMetalLayer;
 	std::mutex _lock;
 	MVKBlockObserver* _layerObserver;
 };

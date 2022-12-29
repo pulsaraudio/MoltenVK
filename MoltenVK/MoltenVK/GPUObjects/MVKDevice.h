@@ -32,7 +32,6 @@
 #include <mutex>
 
 #import <Metal/Metal.h>
-#import <QuartzCore/CAMetalLayer.h>
 
 class MVKInstance;
 class MVKDevice;

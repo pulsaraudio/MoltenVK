@@ -33,7 +33,8 @@ MVKSurface::MVKSurface(MVKInstance* mvkInstance,
 					   const VkMetalSurfaceCreateInfoEXT* pCreateInfo,
 					   const VkAllocationCallbacks* pAllocator) : _mvkInstance(mvkInstance) {
 
-	_mtlCAMetalLayer = (CAMetalLayer*)[pCreateInfo->pLayer retain];
+    CAMetalLayer* caLayer = const_cast<CAMetalLayer*>([pCreateInfo->pLayer retain]);
+    _mtlCAMetalLayer = MVK_OBJC_SETCLASS(caLayer, CAMetalLayer);
 	initLayerObserver();
 }
 
@@ -58,7 +59,7 @@ MVKSurface::MVKSurface(MVKInstance* mvkInstance,
 
 	// Confirm that we were provided with a CAMetalLayer
 	if ([obj isKindOfClass: [CAMetalLayer class]]) {
-		_mtlCAMetalLayer = (CAMetalLayer*)[obj retain];		// retained
+		_mtlCAMetalLayer = MVK_OBJC_SETCLASS(static_cast<CAMetalLayer*>([obj retain]), CAMetalLayer); // retained
 	} else {
 		setConfigurationResult(reportError(VK_ERROR_INITIALIZATION_FAILED,
 										   "%s(): On-screen rendering requires a layer of type CAMetalLayer.",

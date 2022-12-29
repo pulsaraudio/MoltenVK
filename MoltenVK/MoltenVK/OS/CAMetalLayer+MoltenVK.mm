@@ -26,7 +26,7 @@
 #endif
 
 
-@implementation CAMetalLayer (MoltenVK)
+@implementation MVK_OBJC_CATEGORY_IMPL(CAMetalLayer)
 
 -(CGSize) naturalDrawableSizeMVK {
     CGSize drawSize = self.bounds.size;

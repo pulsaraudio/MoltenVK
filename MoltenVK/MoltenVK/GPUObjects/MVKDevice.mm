@@ -1039,7 +1039,7 @@ VkResult MVKPhysicalDevice::getSurfaceCapabilities(MVKSurface* surface,
 												   VkSurfaceCapabilitiesKHR* pSurfaceCapabilities) {
 
 	// The layer underlying the surface view must be a CAMetalLayer.
-	CAMetalLayer* mtlLayer = surface->getCAMetalLayer();
+	MVK_OBJC_CLASS(CAMetalLayer)* mtlLayer = surface->getCAMetalLayer();
 	if ( !mtlLayer ) { return surface->getConfigurationResult(); }
 
     VkExtent2D surfExtnt = mvkVkExtent2DFromCGSize(mtlLayer.naturalDrawableSizeMVK);
@@ -1069,7 +1069,7 @@ VkResult MVKPhysicalDevice::getSurfaceFormats(MVKSurface* surface,
 											  VkSurfaceFormatKHR* pSurfaceFormats) {
 
 	// The layer underlying the surface view must be a CAMetalLayer.
-	CAMetalLayer* mtlLayer = surface->getCAMetalLayer();
+	MVK_OBJC_CLASS(CAMetalLayer)* mtlLayer = surface->getCAMetalLayer();
 	if ( !mtlLayer ) { return surface->getConfigurationResult(); }
 
 #define addSurfFmt(MTL_FMT) \
@@ -1194,7 +1194,7 @@ VkResult MVKPhysicalDevice::getSurfacePresentModes(MVKSurface* surface,
 												   VkPresentModeKHR* pPresentModes) {
 
 	// The layer underlying the surface view must be a CAMetalLayer.
-	CAMetalLayer* mtlLayer = surface->getCAMetalLayer();
+	MVK_OBJC_CLASS(CAMetalLayer)* mtlLayer = surface->getCAMetalLayer();
 	if ( !mtlLayer ) { return surface->getConfigurationResult(); }
 
 #define ADD_VK_PRESENT_MODE(VK_PM)																	\
@@ -1224,7 +1224,7 @@ VkResult MVKPhysicalDevice::getPresentRectangles(MVKSurface* surface,
 												 VkRect2D* pRects) {
 
 	// The layer underlying the surface view must be a CAMetalLayer.
-	CAMetalLayer* mtlLayer = surface->getCAMetalLayer();
+	MVK_OBJC_CLASS(CAMetalLayer)* mtlLayer = surface->getCAMetalLayer();
 	if ( !mtlLayer ) { return surface->getConfigurationResult(); }
 
 	if ( !pRects ) {

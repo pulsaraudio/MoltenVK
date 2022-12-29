@@ -19,8 +19,9 @@
 #pragma once
 
 #include "MVKCommonEnvironment.h"
+#include "MVKObjCClass.h"
 
-#import <QuartzCore/QuartzCore.h>
+#import <QuartzCore/CAMetalLayer.h>
 
 #if MVK_IOS_OR_TVOS || MVK_MACCAT
 #	define PLATFORM_SCREEN_CLASS	UIScreen
@@ -33,7 +34,7 @@
 #endif
 
 /** Extensions to CAMetalLayer to support MoltenVK. */
-@interface CAMetalLayer (MoltenVK)
+@interface MVK_OBJC_CATEGORY_DECL(CAMetalLayer)
 
 /**
  * Returns the natural drawable size for this layer.

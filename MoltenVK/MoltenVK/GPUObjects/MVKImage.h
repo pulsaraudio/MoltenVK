@@ -27,6 +27,7 @@
 #include <mutex>
 
 #import <IOSurface/IOSurfaceRef.h>
+#import <QuartzCore/CAMetalLayer.h>
 
 class MVKImage;
 class MVKImageView;

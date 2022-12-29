@@ -118,7 +118,7 @@ protected:
     void markFrameInterval();
 	void recordPresentTime(MVKPresentTimingInfo presentTimingInfo, uint64_t actualPresentTime = 0);
 
-	CAMetalLayer* _mtlLayer;
+	MVK_OBJC_CLASS(CAMetalLayer)* _mtlLayer;
     MVKWatermark* _licenseWatermark;
 	MVKSmallVector<MVKPresentableSwapchainImage*, kMVKMaxSwapchainImageCount> _presentableImages;
 	std::atomic<uint64_t> _currentAcquisitionID;
