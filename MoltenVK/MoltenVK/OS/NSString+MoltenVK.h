@@ -18,19 +18,27 @@
 
 #pragma once
 
-#import <Foundation/Foundation.h>
+#import <Foundation/NSString.h>
 
+/** Conveniency function to append a line to a mutable string.
 
-#pragma mark -
-#pragma mark NSMutableString extension
+    This avoid the use of an Objective-C category upon NSMutableString, because
+    it lead to problems when used in multiple plugins (category methods may be
+    spuriously replaced when another plugin is loaded).
 
-/** Extensions to NSMutableString to support MoltenVK. */
-@interface NSMutableString (MoltenVK)
+    Also, subclassing NSMutableString is not that easy because it leads to abstract
+    class runtime errors (we'll need to reimplement length, for instance). It is
+    therefore easier to create those 2 little functions.
+ */
+inline void appendLineMVK(NSMutableString * mutableString, NSString* aString)
+{
+    [mutableString appendString: aString];
+    [mutableString appendString: @"\n"];
+}
 
-/** Appends the string and a new line. */
--(void) appendLineMVK:(NSString*) aString;
-
-/** Appends an empty new line. */
--(void) appendLineMVK;
-
-@end
+/** Conveniency function to append an empty line to a mutable string.
+  */
+inline void appendLineMVK(NSMutableString * mutableString)
+{
+    [mutableString appendString: @"\n"];
+}

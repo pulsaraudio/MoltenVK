@@ -206,72 +206,72 @@ id<MTLFunction> MVKCommandResourceFactory::newBlitFragFunction(MVKRPSKeyBlitImg&
 		NSString* srcFilter = isLinearFilter ? @"linear" : @"nearest";
 
 		NSMutableString* msl = [NSMutableString stringWithCapacity: (2 * KIBI) ];
-		[msl appendLineMVK: @"#include <metal_stdlib>"];
-		[msl appendLineMVK: @"using namespace metal;"];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"typedef struct {"];
-		[msl appendLineMVK: @"    float4 v_position [[position]];"];
-		[msl appendLineMVK: @"    float3 v_texCoord;"];
+		appendLineMVK(msl, @"#include <metal_stdlib>");
+		appendLineMVK(msl, @"using namespace metal;");
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"typedef struct {");
+		appendLineMVK(msl, @"    float4 v_position [[position]];");
+		appendLineMVK(msl, @"    float3 v_texCoord;");
 		if (isLayeredBlit && isArrayType) {
-			[msl appendLineMVK: @"    uint v_layer [[render_target_array_index]];"];
+			appendLineMVK(msl, @"    uint v_layer [[render_target_array_index]];");
 		}
-		[msl appendLineMVK: @"} VaryingsPosTex;"];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"typedef struct {"];
+		appendLineMVK(msl, @"} VaryingsPosTex;");
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"typedef struct {");
 		if (mvkIsAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_DEPTH_BIT))) {
 			[msl appendFormat: @"    %@ depth [[depth(any)]];", typeStr];
-			[msl appendLineMVK];
+			appendLineMVK(msl);
 		}
 		if (mvkIsAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_STENCIL_BIT))) {
-			[msl appendLineMVK: @"    uint stencil [[stencil]];"];
+			appendLineMVK(msl, @"    uint stencil [[stencil]];");
 		}
 		if (!mvkIsAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))) {
 			[msl appendFormat: @"    %@4 color [[color(0)]];", typeStr];
-			[msl appendLineMVK];
+			appendLineMVK(msl);
 		}
-		[msl appendLineMVK: @"} FragmentOutputs;"];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"typedef struct {"];
-		[msl appendLineMVK: @"    uint slice;"];
-		[msl appendLineMVK: @"    float lod;"];
-		[msl appendLineMVK: @"} TexSubrez;"];
-		[msl appendLineMVK];
+		appendLineMVK(msl, @"} FragmentOutputs;");
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"typedef struct {");
+		appendLineMVK(msl, @"    uint slice;");
+		appendLineMVK(msl, @"    float lod;");
+		appendLineMVK(msl, @"} TexSubrez;");
+		appendLineMVK(msl);
 
 		if (!mvkIsOnlyAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_STENCIL_BIT))) {
 			[msl appendFormat: @"constexpr sampler ce_sampler(mip_filter::nearest, filter::%@);", srcFilter];
-			[msl appendLineMVK];
+			appendLineMVK(msl);
 		}
 		if (mvkIsAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_STENCIL_BIT))) {
-			[msl appendLineMVK: @"constexpr sampler ce_stencil_sampler(mip_filter::nearest);"];
+			appendLineMVK(msl, @"constexpr sampler ce_stencil_sampler(mip_filter::nearest);");
 		}
 
 		NSString* funcName = @"fragCmdBlitImage";
 		[msl appendFormat: @"fragment FragmentOutputs %@(VaryingsPosTex varyings [[stage_in]],", funcName];
-		[msl appendLineMVK];
+		appendLineMVK(msl);
 		if (!mvkIsOnlyAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_STENCIL_BIT))) {
 			[msl appendFormat: @"                         %@%@<%@> tex [[texture(0)]],", typePrefix, typeSuffix, typeStr];
-			[msl appendLineMVK];
+			appendLineMVK(msl);
 		}
 		if (mvkIsAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_STENCIL_BIT))) {
 			[msl appendFormat: @"                         texture%@<uint> stencilTex [[texture(1)]],", typeSuffix];
-			[msl appendLineMVK];
+			appendLineMVK(msl);
 		}
-		[msl appendLineMVK: @"                         constant TexSubrez& subRez [[buffer(0)]]) {"];
-		[msl appendLineMVK: @"    FragmentOutputs out;"];
+		appendLineMVK(msl, @"                         constant TexSubrez& subRez [[buffer(0)]]) {");
+		appendLineMVK(msl, @"    FragmentOutputs out;");
 		if (mvkIsAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_DEPTH_BIT))) {
 			[msl appendFormat: @"    out.depth = tex.sample(ce_sampler, varyings.v_texCoord%@%@, level(subRez.lod));", coordArg, sliceArg];
-			[msl appendLineMVK];
+			appendLineMVK(msl);
 		}
 		if (mvkIsAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_STENCIL_BIT))) {
 			[msl appendFormat: @"    out.stencil = stencilTex.sample(ce_stencil_sampler, varyings.v_texCoord%@%@, level(subRez.lod)).x;", coordArg, sliceArg];
-			[msl appendLineMVK];
+			appendLineMVK(msl);
 		}
 		if (!mvkIsAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))) {
 			[msl appendFormat: @"    out.color = tex.sample(ce_sampler, varyings.v_texCoord%@%@, level(subRez.lod));", coordArg, sliceArg];
-			[msl appendLineMVK];
+			appendLineMVK(msl);
 		}
-		[msl appendLineMVK: @"    return out;"];
-		[msl appendLineMVK: @"}"];
+		appendLineMVK(msl, @"    return out;");
+		appendLineMVK(msl, @"}");
 
 //		MVKLogDebug("\n%s", msl.UTF8String);
 
@@ -282,31 +282,31 @@ id<MTLFunction> MVKCommandResourceFactory::newBlitFragFunction(MVKRPSKeyBlitImg&
 id<MTLFunction> MVKCommandResourceFactory::newClearVertFunction(MVKRPSKeyClearAtt& attKey) {
 	@autoreleasepool {
 		NSMutableString* msl = [NSMutableString stringWithCapacity: (2 * KIBI) ];
-		[msl appendLineMVK: @"#include <metal_stdlib>"];
-		[msl appendLineMVK: @"using namespace metal;"];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"typedef struct {"];
-		[msl appendLineMVK: @"    float4 a_position [[attribute(0)]];"];
-		[msl appendLineMVK: @"} AttributesPos;"];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"typedef struct {"];
-		[msl appendLineMVK: @"    float4 colors[9];"];
-		[msl appendLineMVK: @"} ClearColorsIn;"];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"typedef struct {"];
-		[msl appendLineMVK: @"    float4 v_position [[position]];"];
+		appendLineMVK(msl, @"#include <metal_stdlib>");
+		appendLineMVK(msl, @"using namespace metal;");
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"typedef struct {");
+		appendLineMVK(msl, @"    float4 a_position [[attribute(0)]];");
+		appendLineMVK(msl, @"} AttributesPos;");
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"typedef struct {");
+		appendLineMVK(msl, @"    float4 colors[9];");
+		appendLineMVK(msl, @"} ClearColorsIn;");
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"typedef struct {");
+		appendLineMVK(msl, @"    float4 v_position [[position]];");
 		[msl appendFormat:  @"    uint layer%s;", attKey.isLayeredRenderingEnabled() ? " [[render_target_array_index]]" : ""];
-		[msl appendLineMVK: @"} VaryingsPos;"];
-		[msl appendLineMVK];
+		appendLineMVK(msl, @"} VaryingsPos;");
+		appendLineMVK(msl);
 
 		NSString* funcName = @"vertClear";
 		[msl appendFormat: @"vertex VaryingsPos %@(AttributesPos attributes [[stage_in]], constant ClearColorsIn& ccIn [[buffer(0)]]) {", funcName];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"    VaryingsPos varyings;"];
-		[msl appendLineMVK: @"    varyings.v_position = float4(attributes.a_position.x, -attributes.a_position.y, ccIn.colors[8].r, 1.0);"];
-		[msl appendLineMVK: @"    varyings.layer = uint(attributes.a_position.w);"];
-		[msl appendLineMVK: @"    return varyings;"];
-		[msl appendLineMVK: @"}"];
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"    VaryingsPos varyings;");
+		appendLineMVK(msl, @"    varyings.v_position = float4(attributes.a_position.x, -attributes.a_position.y, ccIn.colors[8].r, 1.0);");
+		appendLineMVK(msl, @"    varyings.layer = uint(attributes.a_position.w);");
+		appendLineMVK(msl, @"    return varyings;");
+		appendLineMVK(msl, @"}");
 
 //		MVKLogDebug("\n%s", msl.UTF8String);
 
@@ -317,41 +317,41 @@ id<MTLFunction> MVKCommandResourceFactory::newClearVertFunction(MVKRPSKeyClearAt
 id<MTLFunction> MVKCommandResourceFactory::newClearFragFunction(MVKRPSKeyClearAtt& attKey) {
 	@autoreleasepool {
 		NSMutableString* msl = [NSMutableString stringWithCapacity: (2 * KIBI) ];
-		[msl appendLineMVK: @"#include <metal_stdlib>"];
-		[msl appendLineMVK: @"using namespace metal;"];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"typedef struct {"];
-		[msl appendLineMVK: @"    float4 v_position [[position]];"];
-		[msl appendLineMVK: @"} VaryingsPos;"];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"typedef struct {"];
-		[msl appendLineMVK: @"    float4 colors[9];"];
-		[msl appendLineMVK: @"} ClearColorsIn;"];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"typedef struct {"];
+		appendLineMVK(msl, @"#include <metal_stdlib>");
+		appendLineMVK(msl, @"using namespace metal;");
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"typedef struct {");
+		appendLineMVK(msl, @"    float4 v_position [[position]];");
+		appendLineMVK(msl, @"} VaryingsPos;");
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"typedef struct {");
+		appendLineMVK(msl, @"    float4 colors[9];");
+		appendLineMVK(msl, @"} ClearColorsIn;");
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"typedef struct {");
 		for (uint32_t caIdx = 0; caIdx < kMVKClearAttachmentDepthStencilIndex; caIdx++) {
 			if (attKey.isAttachmentUsed(caIdx)) {
 				NSString* typeStr = getMTLFormatTypeString((MTLPixelFormat)attKey.attachmentMTLPixelFormats[caIdx]);
 				[msl appendFormat: @"    %@4 color%u [[color(%u)]];", typeStr, caIdx, caIdx];
-				[msl appendLineMVK];
+				appendLineMVK(msl);
 			}
 		}
-		[msl appendLineMVK: @"} ClearColorsOut;"];
-		[msl appendLineMVK];
+		appendLineMVK(msl, @"} ClearColorsOut;");
+		appendLineMVK(msl);
 
 		NSString* funcName = @"fragClear";
 		[msl appendFormat: @"fragment ClearColorsOut %@(VaryingsPos varyings [[stage_in]], constant ClearColorsIn& ccIn [[buffer(0)]]) {", funcName];
-		[msl appendLineMVK];
-		[msl appendLineMVK: @"    ClearColorsOut ccOut;"];
+		appendLineMVK(msl);
+		appendLineMVK(msl, @"    ClearColorsOut ccOut;");
 		for (uint32_t caIdx = 0; caIdx < kMVKClearAttachmentDepthStencilIndex; caIdx++) {
 			if (attKey.isAttachmentUsed(caIdx)) {
 				NSString* typeStr = getMTLFormatTypeString((MTLPixelFormat)attKey.attachmentMTLPixelFormats[caIdx]);
 				[msl appendFormat: @"    ccOut.color%u = %@4(ccIn.colors[%u]);", caIdx, typeStr, caIdx];
-				[msl appendLineMVK];
+				appendLineMVK(msl);
 			}
 		}
-		[msl appendLineMVK: @"    return ccOut;"];
-		[msl appendLineMVK: @"}"];
+		appendLineMVK(msl, @"    return ccOut;");
+		appendLineMVK(msl, @"}");
 
 //		MVKLogDebug("\n%s", msl.UTF8String);
 
