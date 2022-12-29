@@ -22,10 +22,6 @@
 #include "MVKCommandEncodingPool.h"
 #include "MVKFoundation.h"
 #include "mvk_datatypes.hpp"
-#include "MTLRenderPassDepthAttachmentDescriptor+MoltenVK.h"
-#if MVK_MACOS_OR_IOS
-#include "MTLRenderPassStencilAttachmentDescriptor+MoltenVK.h"
-#endif
 #include <cassert>
 
 using namespace std;
@@ -211,7 +207,9 @@ void MVKRenderSubpass::populateMTLRenderPassDescriptor(MTLRenderPassDescriptor* 
 			bool hasResolveAttachment = (dsRslvRPAttIdx != VK_ATTACHMENT_UNUSED && _depthResolveMode != VK_RESOLVE_MODE_NONE);
 			if (hasResolveAttachment) {
 				dsRslvImage->populateMTLRenderPassAttachmentDescriptorResolve(mtlDepthAttDesc);
-				mtlDepthAttDesc.depthResolveFilterMVK = mvkMTLMultisampleDepthResolveFilterFromVkResolveModeFlagBits(_depthResolveMode);
+                if (@available(macos 10.14, ios 9.0, *)) {
+                    mtlDepthAttDesc.depthResolveFilter = mvkMTLMultisampleDepthResolveFilterFromVkResolveModeFlagBits(_depthResolveMode);
+                }
 				if (isMultiview()) {
 					mtlDepthAttDesc.resolveSlice += getFirstViewIndexInMetalPass(passIdx);
 				}
@@ -232,7 +230,9 @@ void MVKRenderSubpass::populateMTLRenderPassDescriptor(MTLRenderPassDescriptor* 
 			if (hasResolveAttachment) {
 				dsRslvImage->populateMTLRenderPassAttachmentDescriptorResolve(mtlStencilAttDesc);
 #if MVK_MACOS_OR_IOS
-				mtlStencilAttDesc.stencilResolveFilterMVK = mvkMTLMultisampleStencilResolveFilterFromVkResolveModeFlagBits(_stencilResolveMode);
+                if (@available(macos 10.14, ios 12.0, tvos 14.5, *)) {
+                    mtlStencilAttDesc.stencilResolveFilter = mvkMTLMultisampleStencilResolveFilterFromVkResolveModeFlagBits(_stencilResolveMode);
+                }
 #endif
 				if (isMultiview()) {
 					mtlStencilAttDesc.resolveSlice += getFirstViewIndexInMetalPass(passIdx);

@@ -1432,7 +1432,7 @@ void MVKPixelFormats::modifyMTLFormatCapabilities() {
 		modifyMTLFormatCapabilities(_physicalDevice->getMTLDevice());
 	} else {
         id<MTLDevice> mtlDevice = nullptr;
-        if (@available(macOS 10.11, ios 8.0, *))
+        if (@available(macos 10.11, ios 8.0, *))
         {
 #if MVK_IOS_OR_TVOS
             mtlDevice = MTLCreateSystemDefaultDevice();	// temp retained

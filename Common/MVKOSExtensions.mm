@@ -35,7 +35,7 @@ MVKOSVersion mvkOSVersion() {
         // MoltenVK has been modified to compile for 10.9 at least. Of course,
         // if will not run on macOS < 10.11 so this default version number is not that important.
         NSOperatingSystemVersion osVer {0, 0, 0};
-        if (@available(macOS 10.10, ios 8.0, *))
+        if (@available(macos 10.10, ios 8.0, *))
         {
             osVer = [[NSProcessInfo processInfo] operatingSystemVersion];
         }

@@ -40,7 +40,7 @@ MVK_PUBLIC_SYMBOL bool mvkIsSupported() {
     if (result == SupportStatus::compute)
     {
         id<MTLDevice> mtlDevice = nullptr;
-        if (@available(macOS 10.11, ios 8.0, *))
+        if (@available(macos 10.11, ios 8.0, *))
         {
 #if MVK_IOS_OR_TVOS
             mtlDevice = MTLCreateSystemDefaultDevice();
