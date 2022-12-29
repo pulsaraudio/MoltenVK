@@ -63,16 +63,18 @@ id<MTLTexture> MVKFramebuffer::getDummyAttachmentMTLTexture(MVKRenderSubpass* su
 		mtlTexDesc.textureType = MTLTextureType2DMultisample;
 		mtlTexDesc.sampleCount = sampleCount;
 	}
+    if (@available(macos 10.11, ios 9.0, *)) {
 #if MVK_IOS
-	if ([getMTLDevice() supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily1_v3]) {
-		mtlTexDesc.storageMode = MTLStorageModeMemoryless;
-	} else {
-		mtlTexDesc.storageMode = MTLStorageModePrivate;
-	}
+        if ([getMTLDevice() supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily1_v3]) {
+            mtlTexDesc.storageMode = MTLStorageModeMemoryless;
+        } else {
+            mtlTexDesc.storageMode = MTLStorageModePrivate;
+        }
 #else
-	mtlTexDesc.storageMode = MTLStorageModePrivate;
+        mtlTexDesc.storageMode = MTLStorageModePrivate;
 #endif
-	mtlTexDesc.usage = MTLTextureUsageRenderTarget;
+        mtlTexDesc.usage = MTLTextureUsageRenderTarget;
+    }
 
 	_mtlDummyTex = [getMTLDevice() newTextureWithDescriptor: mtlTexDesc];	// retained
 	[_mtlDummyTex setPurgeableState: MTLPurgeableStateVolatile];

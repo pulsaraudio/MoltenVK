@@ -19,7 +19,6 @@
 
 #include "MVKWatermark.h"
 #include "MVKOSExtensions.h"
-#include "MTLTextureDescriptor+MoltenVK.h"
 #include "MVKEnvironment.h"
 
 
@@ -280,13 +279,14 @@ void MVKWatermark::initTexture(unsigned char* textureContent,
                                                                                        width: textureWidth
                                                                                       height: textureHeight
                                                                                    mipmapped: NO];
-    texDesc.usageMVK = MTLTextureUsageShaderRead;
+    if (@available(macos 10.11, ios 9.0, *)) {
+        texDesc.usage = MTLTextureUsageShaderRead;
 #if MVK_IOS
-    texDesc.storageModeMVK = MTLStorageModeShared;
+        texDesc.storageMode = MTLStorageModeShared;
+#elif MVK_MACOS
+        texDesc.storageMode = MTLStorageModeManaged;
 #endif
-#if MVK_MACOS
-    texDesc.storageModeMVK = MTLStorageModeManaged;
-#endif
+    }
 
     _mtlTexture = [_mtlDevice newTextureWithDescriptor: texDesc];		// retained
     [_mtlTexture replaceRegion: MTLRegionMake2D(0, 0, textureWidth, textureHeight)

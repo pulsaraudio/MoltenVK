@@ -25,7 +25,6 @@
 #include "MVKFoundation.h"
 #include "MVKOSExtensions.h"
 #include "MVKCodec.h"
-#import "MTLTextureDescriptor+MoltenVK.h"
 
 using namespace std;
 using namespace SPIRV_CROSS_NAMESPACE;
@@ -126,8 +125,10 @@ MTLTextureDescriptor* MVKImagePlane::newMTLTextureDescriptor() {
     mtlTexDesc.mipmapLevelCount = _image->_mipLevels;
     mtlTexDesc.sampleCount = mvkSampleCountFromVkSampleCountFlagBits(_image->_samples);
     mtlTexDesc.arrayLength = _image->_arrayLayers;
-	mtlTexDesc.usageMVK = _image->getMTLTextureUsage(mtlPixFmt);
-    mtlTexDesc.storageModeMVK = _image->getMTLStorageMode();
+    if (@available(macos 10.11, ios 9.0, *)) {
+        mtlTexDesc.usage = _image->getMTLTextureUsage(mtlPixFmt);
+        mtlTexDesc.storageMode = _image->getMTLStorageMode();
+    }
     mtlTexDesc.cpuCacheMode = _image->getMTLCPUCacheMode();
 
     return mtlTexDesc;
