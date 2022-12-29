@@ -26,7 +26,6 @@
 #include "MVKOSExtensions.h"
 #include "MVKCodec.h"
 #import "MTLTextureDescriptor+MoltenVK.h"
-#import "MTLSamplerDescriptor+MoltenVK.h"
 
 using namespace std;
 using namespace SPIRV_CROSS_NAMESPACE;
@@ -2038,7 +2037,9 @@ MTLSamplerDescriptor* MVKSampler::newMTLSamplerDescriptor(const VkSamplerCreateI
         mtlSampDesc.rAddressMode = getMTLSamplerAddressMode(pCreateInfo->addressModeW);
     }
 #if MVK_MACOS_OR_IOS
-	mtlSampDesc.borderColorMVK = mvkMTLSamplerBorderColorFromVkBorderColor(pCreateInfo->borderColor);
+    if (@available(macos 10.12, ios 14.0, *)) {
+        mtlSampDesc.borderColor = mvkMTLSamplerBorderColorFromVkBorderColor(pCreateInfo->borderColor);
+    }
 #endif
 
 	mtlSampDesc.minFilter = mvkMTLSamplerMinMagFilterFromVkFilter(pCreateInfo->minFilter);
@@ -2059,7 +2060,9 @@ MTLSamplerDescriptor* MVKSampler::newMTLSamplerDescriptor(const VkSamplerCreateI
 	// be automatically hardcoded into the shader MSL. An error will be triggered if this
 	// sampler is used to update or push a descriptor.
 	if (pCreateInfo->compareEnable && !_requiresConstExprSampler) {
-		mtlSampDesc.compareFunctionMVK = mvkMTLCompareFunctionFromVkCompareOp(pCreateInfo->compareOp);
+        if (@available(macos 10.11, ios 9.0, *)) {
+            mtlSampDesc.compareFunction = mvkMTLCompareFunctionFromVkCompareOp(pCreateInfo->compareOp);
+        }
 	}
 
 	return mtlSampDesc;
