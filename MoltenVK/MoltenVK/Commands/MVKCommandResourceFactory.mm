@@ -22,7 +22,6 @@
 #include "MVKFoundation.h"
 #include "MVKBuffer.h"
 #include "NSString+MoltenVK.h"
-#include "MTLRenderPipelineDescriptor+MoltenVK.h"
 
 using namespace std;
 
@@ -42,7 +41,9 @@ id<MTLRenderPipelineState> MVKCommandResourceFactory::newCmdBlitImageMTLRenderPi
 	plDesc.fragmentFunction = fragFunc;
 	plDesc.sampleCount = blitKey.dstSampleCount;
 	if (isLayeredBlit) {
-		plDesc.inputPrimitiveTopologyMVK = MTLPrimitiveTopologyClassTriangle;
+        if (@available(macos 10.11, ios 12.0, tvos 14.5, *)) {
+            plDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle;
+        }
 	}
 
 	if (mvkIsAnyFlagEnabled(blitKey.srcAspect, (VK_IMAGE_ASPECT_DEPTH_BIT))) {
@@ -120,7 +121,9 @@ id<MTLRenderPipelineState> MVKCommandResourceFactory::newCmdClearMTLRenderPipeli
 	plDesc.vertexFunction = vtxFunc;
     plDesc.fragmentFunction = fragFunc;
 	plDesc.sampleCount = attKey.mtlSampleCount;
-	plDesc.inputPrimitiveTopologyMVK = MTLPrimitiveTopologyClassTriangle;
+    if (@available(macos 10.11, ios 12.0, tvos 14.5, *)) {
+        plDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle;
+    }
 
     for (uint32_t caIdx = 0; caIdx < kMVKClearAttachmentDepthStencilIndex; caIdx++) {
         MTLRenderPipelineColorAttachmentDescriptor* colorDesc = plDesc.colorAttachments[caIdx];

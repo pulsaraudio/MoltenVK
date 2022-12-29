@@ -22,7 +22,6 @@
 #include "MVKFoundation.h"
 #include "MVKOSExtensions.h"
 #include "MVKStrings.h"
-#include "MTLRenderPipelineDescriptor+MoltenVK.h"
 #include "mvk_datatypes.hpp"
 
 #include <cereal/archives/binary.hpp>
@@ -1468,9 +1467,11 @@ void MVKGraphicsPipeline::addFragmentOutputToPipeline(MTLRenderPipelineDescripto
 													  const VkGraphicsPipelineCreateInfo* pCreateInfo) {
 	// Topology
 	if (pCreateInfo->pInputAssemblyState) {
-		plDesc.inputPrimitiveTopologyMVK = isRenderingPoints(pCreateInfo)
+        if (@available(macos 10.11, ios 12.0, tvos 14.5, *)) {
+            plDesc.inputPrimitiveTopology = isRenderingPoints(pCreateInfo)
 												? MTLPrimitiveTopologyClassPoint
 												: mvkMTLPrimitiveTopologyClassFromVkPrimitiveTopology(pCreateInfo->pInputAssemblyState->topology);
+        }
 	}
 
 	const VkPipelineRenderingCreateInfo* pRendInfo = getRenderingCreateInfo(pCreateInfo);
