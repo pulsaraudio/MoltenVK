@@ -172,7 +172,11 @@ MVK_PUBLIC_SYMBOL MTLTextureType mvkMTLTextureTypeFromVkImageType(VkImageType vk
 		case VK_IMAGE_TYPE_2D:
 		default: {
 #if MVK_MACOS_OR_IOS
-			if (arraySize > 1 && isMultisample) { return MTLTextureType2DMultisampleArray; }
+			if (arraySize > 1 && isMultisample) {
+                if (@available(macos 10.14, ios 14.0, *)) {
+                    return MTLTextureType2DMultisampleArray;
+                }
+            }
 #endif
 			if (arraySize > 1) { return MTLTextureType2DArray; }
 			if (isMultisample) { return MTLTextureType2DMultisample; }
@@ -203,7 +207,9 @@ MVK_PUBLIC_SYMBOL MTLTextureType mvkMTLTextureTypeFromVkImageViewType(VkImageVie
 
 		case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
 #if MVK_MACOS
-			if (isMultisample) { return MTLTextureType2DMultisampleArray; }
+            if (@available(macos 10.14, ios 14.0, *)) {
+                if (isMultisample) { return MTLTextureType2DMultisampleArray; }
+            }
 #endif
 			return MTLTextureType2DArray;
 

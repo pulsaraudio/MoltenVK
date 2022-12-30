@@ -47,25 +47,32 @@ class MVKPixelFormats;
  * of an MVKBaseObject subclass, which is true for all but static calling functions.
  */
 
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLPrimitiveType mvkMTLPrimitiveTypeFromVkPrimitiveTopologyInObj(VkPrimitiveTopology vkTopology, MVKBaseObject* mvkObj);
 #define mvkMTLPrimitiveTypeFromVkPrimitiveTopology(vkTopology) mvkMTLPrimitiveTypeFromVkPrimitiveTopologyInObj(vkTopology, this)
 
+API_AVAILABLE(macos(10.11), ios(12.0))
 MTLPrimitiveTopologyClass mvkMTLPrimitiveTopologyClassFromVkPrimitiveTopologyInObj(VkPrimitiveTopology vkTopology, MVKBaseObject* mvkObj);
 #define mvkMTLPrimitiveTopologyClassFromVkPrimitiveTopology(vkTopology) mvkMTLPrimitiveTopologyClassFromVkPrimitiveTopologyInObj(vkTopology, this)
 
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLTriangleFillMode mvkMTLTriangleFillModeFromVkPolygonModeInObj(VkPolygonMode vkFillMode, MVKBaseObject* mvkObj);
 #define mvkMTLTriangleFillModeFromVkPolygonMode(vkFillMode) mvkMTLTriangleFillModeFromVkPolygonModeInObj(vkFillMode, this)
 
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLLoadAction mvkMTLLoadActionFromVkAttachmentLoadOpInObj(VkAttachmentLoadOp vkLoadOp, MVKBaseObject* mvkObj);
 #define mvkMTLLoadActionFromVkAttachmentLoadOp(vkLoadOp) mvkMTLLoadActionFromVkAttachmentLoadOpInObj(vkLoadOp, this)
 
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLStoreAction mvkMTLStoreActionFromVkAttachmentStoreOpInObj(VkAttachmentStoreOp vkStoreOp, bool hasResolveAttachment, bool canResolveFormat, MVKBaseObject* mvkObj);
 #define mvkMTLStoreActionFromVkAttachmentStoreOp(vkStoreOp, hasResolveAttachment, canResolveFormat) mvkMTLStoreActionFromVkAttachmentStoreOpInObj(vkStoreOp, hasResolveAttachment, canResolveFormat, this)
 
+API_AVAILABLE(macos(10.14), ios(9.0))
 MTLMultisampleDepthResolveFilter mvkMTLMultisampleDepthResolveFilterFromVkResolveModeFlagBitsInObj(VkResolveModeFlagBits vkResolveMode, MVKBaseObject* mvkObj);
 #define mvkMTLMultisampleDepthResolveFilterFromVkResolveModeFlagBits(vkResolveMode) mvkMTLMultisampleDepthResolveFilterFromVkResolveModeFlagBitsInObj(vkResolveMode, this)
 
 #if MVK_MACOS_OR_IOS
+API_AVAILABLE(macos(10.14), ios(12.0), tvos(14.5))
 MTLMultisampleStencilResolveFilter mvkMTLMultisampleStencilResolveFilterFromVkResolveModeFlagBitsInObj(VkResolveModeFlagBits vkResolveMode, MVKBaseObject* mvkObj);
 #define mvkMTLMultisampleStencilResolveFilterFromVkResolveModeFlagBits(vkResolveMode) mvkMTLMultisampleStencilResolveFilterFromVkResolveModeFlagBitsInObj(vkResolveMode, this)
 #endif
@@ -73,9 +80,11 @@ MTLMultisampleStencilResolveFilter mvkMTLMultisampleStencilResolveFilterFromVkRe
 MVKShaderStage mvkShaderStageFromVkShaderStageFlagBitsInObj(VkShaderStageFlagBits vkStage, MVKBaseObject* mvkObj);
 #define mvkShaderStageFromVkShaderStageFlagBits(vkStage) mvkShaderStageFromVkShaderStageFlagBitsInObj(vkStage, this)
 
+API_AVAILABLE(macos(10.11), ios(8.0))
 MTLWinding mvkMTLWindingFromSpvExecutionModeInObj(uint32_t spvMode, MVKBaseObject* mvkObj);
 #define mvkMTLWindingFromSpvExecutionMode(spvMode) mvkMTLWindingFromSpvExecutionModeInObj(spvMode, this)
 
+API_AVAILABLE(macos(10.12), ios(10.0))
 MTLTessellationPartitionMode mvkMTLTessellationPartitionModeFromSpvExecutionModeInObj(uint32_t spvMode, MVKBaseObject* mvkObj);
 #define mvkMTLTessellationPartitionModeFromSpvExecutionMode(spvMode) mvkMTLTessellationPartitionModeFromSpvExecutionModeInObj(spvMode, this)
 

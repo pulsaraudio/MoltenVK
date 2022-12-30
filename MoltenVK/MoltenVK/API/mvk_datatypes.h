@@ -400,12 +400,12 @@ API_AVAILABLE(macos(10.11), ios(8.0))
 MTLStoreAction mvkMTLStoreActionFromVkAttachmentStoreOp(VkAttachmentStoreOp vkStoreOp, bool hasResolveAttachment, bool canResolveFormat = true);
 
 /** Returns the Metal MTLMultisampleDepthResolveFilter corresponding to the specified Vulkan VkResolveModeFlagBits. */
-API_AVAILABLE(macos(10.14))
+API_AVAILABLE(macos(10.14), ios(9.0))
 MTLMultisampleDepthResolveFilter mvkMTLMultisampleDepthResolveFilterFromVkResolveModeFlagBits(VkResolveModeFlagBits vkResolveMode);
 
 #if MVK_MACOS_OR_IOS
 /** Returns the Metal MTLMultisampleStencilResolveFilter corresponding to the specified Vulkan VkResolveModeFlagBits. */
-API_AVAILABLE(macos(10.11), ios(8.0))
+API_AVAILABLE(macos(10.14), ios(12.0), tvos(14.5))
 MTLMultisampleStencilResolveFilter mvkMTLMultisampleStencilResolveFilterFromVkResolveModeFlagBits(VkResolveModeFlagBits vkResolveMode);
 #endif
 
