@@ -76,7 +76,7 @@ void MVKSurface::initLayerObserver() {
 	_layerObserver = nil;
 	if ( ![_mtlCAMetalLayer.delegate isKindOfClass: [PLATFORM_VIEW_CLASS class]] ) { return; }
 
-	_layerObserver = [MVKBlockObserver observerWithBlock: ^(NSString* path, id, NSDictionary*, void*) {
+	_layerObserver = [MVK_OBJC_CLONE(MVKBlockObserver) observerWithBlock: ^(NSString* path, id, NSDictionary*, void*) {
 		if ( ![path isEqualToString: @"layer"] ) { return; }
 		std::lock_guard<std::mutex> lock(this->_lock);
 		[this->_mtlCAMetalLayer release];

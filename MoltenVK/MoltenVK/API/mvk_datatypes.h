@@ -470,16 +470,16 @@ MTLBarrierScope mvkMTLBarrierScopeFromVkAccessFlags(VkAccessFlags vkAccess);
 /** Returns a VkExtent2D that corresponds to the specified CGSize. */
 static inline VkExtent2D mvkVkExtent2DFromCGSize(CGSize cgSize) {
 	VkExtent2D vkExt;
-	vkExt.width = cgSize.width;
-	vkExt.height = cgSize.height;
+	vkExt.width  = static_cast<uint32_t>(cgSize.width);
+	vkExt.height = static_cast<uint32_t>(cgSize.height);
 	return vkExt;
 }
 
 /** Returns a CGSize that corresponds to the specified VkExtent2D. */
 static inline CGSize mvkCGSizeFromVkExtent2D(VkExtent2D vkExtent) {
 	CGSize cgSize;
-	cgSize.width = vkExtent.width;
-	cgSize.height = vkExtent.height;
+	cgSize.width  = static_cast<CGFloat>(vkExtent.width);
+	cgSize.height = static_cast<CGFloat>(vkExtent.height);
 	return cgSize;
 }
 

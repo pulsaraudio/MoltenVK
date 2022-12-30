@@ -19,7 +19,7 @@
 
 #import <Foundation/NSObject.h>
 #import <Foundation/NSKeyValueObserving.h>
-
+#import "MVKObjCClass.h"
 
 #pragma mark MVKBlockObserver
 
@@ -44,4 +44,6 @@ typedef void (^MVKKeyValueObserverBlock)(NSString* keyPath, id object, NSDiction
 - (void)stopObserving;
 
 @end
+
+MVK_OBJC_CLASS_ALIAS(MVKBlockObserver);
 

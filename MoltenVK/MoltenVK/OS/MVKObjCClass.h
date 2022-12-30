@@ -50,6 +50,10 @@
     `MVK_OBJC_CLASS` gives the name of the subclass or category. Subclasses are given
     the `_MVK` suffix.
 
+    `MVK_OBJC_CLASS_ALIAS` defines the "subclass" to be an alias to the original class,
+    instead, thus no subclassing takes place. This is when you provide a full class
+    yourself instead of using `MVK_OBJC_CATEGORY_DECL`.
+
     The following macros do nothing with categories, and only act on subclasses:
 
     `MVK_OBJC_CLONE` is to be used with alloc to create a clone of the declared subclass.
@@ -67,10 +71,19 @@
         MyBaseClass * myObject = getSomeBaseClassObject();
         MVK_OBJC_CLASS(MyClass)* myReclassedObject = MVK_OBJC_SETCLASS(myObject, MyClass);
     \endcode
+
+    \note: Cannot be included from C/Objective-C (.c/.m) files, only from
+    C++/Objective-C++ (.cpp/.mm) files
  */
 
 #ifndef MVK_USE_OBJC_CLASS_CLONING
 #define MVK_USE_OBJC_CLASS_CLONING 0
+#endif
+
+#ifdef __OBJC__
+#define MVK_FWD_CLASS(Class) @class Class
+#else
+#define MVK_FWD_CLASS(Class) class Class
 #endif
 
 #if MVK_USE_OBJC_CLASS_CLONING
@@ -79,6 +92,7 @@
 #include <core_ObjCDefs.h>
 
 #define MVK_OBJC_CLASS(Class) Class ## _MVK
+#define MVK_OBJC_CLASS_ALIAS(Class) CORE_OBJC_CLASS_ALIAS(MVK_OBJC_CLASS(Class), Class)
 #define MVK_OBJC_CLONE(Class) core::ObjCClassCloner<MVK_OBJC_CLASS(Class)>()
 
 #define MVK_OBJC_CATEGORY_IMPL(Class) MVK_OBJC_CLASS(Class)
@@ -92,6 +106,7 @@
 #else // !MVK_USE_OBJC_CLASS_CLONING
 
 #define MVK_OBJC_CLASS(Class) Class
+#define MVK_OBJC_CLASS_ALIAS(Class) MVK_FWD_CLASS(Class)
 #define MVK_OBJC_CLONE(Class) Class
 
 #define MVK_OBJC_CATEGORY_IMPL(Class) Class (MoltenVK)
