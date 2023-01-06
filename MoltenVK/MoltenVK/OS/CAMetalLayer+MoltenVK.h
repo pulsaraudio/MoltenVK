@@ -89,4 +89,6 @@
 /** Returns the screen on which this layer is rendering. */
 @property(nonatomic, readonly) PLATFORM_SCREEN_CLASS* screenMVK;
 
+@property(nonatomic, readonly, copy) NSString *localizedNameMVK;
+
 @end

@@ -141,4 +141,12 @@
 }
 #endif
 
+- (NSString *) localizedNameMVK
+{
+    if (@available(macos 10.15, *)) {
+        return self.screenMVK.localizedName;
+    }
+    return @"Main Screen";
+}
+
 @end
