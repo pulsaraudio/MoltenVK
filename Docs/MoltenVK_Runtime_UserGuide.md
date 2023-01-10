@@ -53,7 +53,7 @@ distribution package, see the main [`README.md`](../README.md) document in the `
 About **MoltenVK**
 ------------------
 
-**MoltenVK** is a layered implementation of [*Vulkan 1.1*](https://www.khronos.org/vulkan) 
+**MoltenVK** is a layered implementation of [*Vulkan 1.2*](https://www.khronos.org/vulkan) 
 graphics and compute functionality, that is built on Apple's [*Metal*](https://developer.apple.com/metal) 
 graphics and compute framework on *macOS*, *iOS*, and *tvOS*. **MoltenVK** allows you to use *Vulkan* 
 graphics and compute functionality to develop modern, cross-platform, high-performance graphical games 
@@ -86,6 +86,20 @@ as an `XCFramework`, as it is the simpler option, and encompasses the largest se
 
 <a name="install_xcfwk"></a>
 ### Install *MoltenVK* as a Universal `XCFramework`
+
+> ***Note:*** *Xcode 14* introduced a new static linkage model that is not compatible with previous 
+versions of *Xcode*. If you link to a `MoltenVK.xcframework` that was built with *Xcode 14* or later, 
+also use *Xcode 14* or later to link it to your app or game. 
+>
+> If you need to use *Xcode 13* or earlier to link `MoltenVK.xcframework` to your app or game, 
+first [build](../README.md#building) **MoltenVK** with *Xcode 13* or earlier. 
+>
+> Or, if you want to use *Xcode 14* or later to [build](../README.md#building) **MoltenVK**, in order to be able to use the latest 
+*Metal* capabilities, but need to use *Xcode 13* or earlier to link `MoltenVK.xcframework` to your 
+app or game, first add the value `-fno-objc-msgsend-selector-stubs` to the `OTHER_CFLAGS` 
+*Xcode* build setting in the `MoltenVK.xcodeproj` and `MoltenVKShaderConverter.xcodeproj` *Xcode* 
+projects, [build](../README.md#building) **MoltenVK** with *Xcode 14* or later, and then link `MoltenVK.xcframework` 
+to your app or game using *Xcode 13* or earlier.
 
 To link **MoltenVK** to your application as an `XCFramework`, follow these steps:
 
@@ -264,6 +278,7 @@ In addition to core *Vulkan* functionality, **MoltenVK**  also supports the foll
 - `VK_KHR_8bit_storage`
 - `VK_KHR_bind_memory2`
 - `VK_KHR_buffer_device_address` *(requires GPU Tier 2 argument buffers support)*
+- `VK_KHR_copy_commands2`
 - `VK_KHR_create_renderpass2`
 - `VK_KHR_dedicated_allocation`
 - `VK_KHR_depth_stencil_resolve`
@@ -289,8 +304,10 @@ In addition to core *Vulkan* functionality, **MoltenVK**  also supports the foll
 - `VK_KHR_sampler_ycbcr_conversion`
 - `VK_KHR_separate_depth_stencil_layouts`
 - `VK_KHR_shader_draw_parameters`
+- `VK_KHR_shader_float_controls`
 - `VK_KHR_shader_float16_int8`
 - `VK_KHR_shader_subgroup_extended_types` *(requires Metal 2.1 on Mac or Metal 2.2 and Apple family 4 on iOS)*
+- `VK_KHR_spirv_1_4`
 - `VK_KHR_storage_buffer_storage_class`
 - `VK_KHR_surface`
 - `VK_KHR_swapchain`
@@ -302,7 +319,9 @@ In addition to core *Vulkan* functionality, **MoltenVK**  also supports the foll
 - `VK_EXT_debug_marker`
 - `VK_EXT_debug_report`
 - `VK_EXT_debug_utils`
-- `VK_EXT_descriptor_indexing` *(initial release limited to Metal Tier 1: 96/128 textures, 16 samplers)*
+- `VK_EXT_descriptor_indexing` *(initial release limited to Metal Tier 1: 96/128 textures, 
+  16 samplers, except macOS 11.0 (Big Sur) or later, or on older versions of macOS using 
+  an Intel GPU, and if Metal argument buffers enabled in config)*
 - `VK_EXT_fragment_shader_interlock` *(requires Metal 2.0 and Raster Order Groups)*
 - `VK_EXT_host_query_reset`
 - `VK_EXT_image_robustness`

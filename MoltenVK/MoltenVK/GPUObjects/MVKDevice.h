@@ -89,6 +89,23 @@ typedef NSUInteger MTLTimestamp;
 #pragma mark -
 #pragma mark MVKPhysicalDevice
 
+typedef enum {
+	MVKSemaphoreStyleUseMTLEvent,
+	MVKSemaphoreStyleUseEmulation,
+	MVKSemaphoreStyleSingleQueue,
+} MVKSemaphoreStyle;
+
+/** VkPhysicalDeviceVulkan12Features entries that did not originate in a prior extension. */
+typedef struct MVKPhysicalDeviceVulkan12FeaturesNoExt {
+	VkBool32 samplerMirrorClampToEdge;
+	VkBool32 drawIndirectCount;
+	VkBool32 descriptorIndexing;
+	VkBool32 samplerFilterMinmax;
+	VkBool32 shaderOutputViewportIndex;
+	VkBool32 shaderOutputLayer;
+	VkBool32 subgroupBroadcastDynamicId;
+} MVKPhysicalDeviceVulkan12FeaturesNoExt;
+
 /** Represents a Vulkan physical GPU device. */
 class MVKPhysicalDevice : public MVKDispatchableVulkanAPIObject {
 
@@ -332,8 +349,10 @@ public:
 	/** Returns whether the MSL version is supported on this device. */
 	bool mslVersionIsAtLeast(MTLLanguageVersion minVer) { return _metalFeatures.mslVersionEnum >= minVer; }
 
-	/** Returns whether this device is using Metal argument buffers. */
-	bool isUsingMetalArgumentBuffers() const  { return _metalFeatures.argumentBuffers && mvkConfig().useMetalArgumentBuffers; };
+	/** Returns whether this physical device supports Metal argument buffers. */
+	bool supportsMetalArgumentBuffers() const  {
+		return _metalFeatures.argumentBuffers && mvkConfig().useMetalArgumentBuffers != MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS_NEVER;
+	};
 
 	/**
 	 * Returns the start timestamps of a timestamp correlation.
@@ -383,6 +402,7 @@ protected:
 	void initLimits();
 	void initGPUInfoProperties();
 	void initMemoryProperties();
+	void initVkSemaphoreStyle();
 	void setMemoryHeap(uint32_t heapIndex, VkDeviceSize heapSize, VkMemoryHeapFlags heapFlags);
 	void setMemoryType(uint32_t typeIndex, uint32_t heapIndex, VkMemoryPropertyFlags propertyFlags);
 	uint64_t getVRAMSize();
@@ -405,6 +425,7 @@ protected:
 	MVKInstance* _mvkInstance;
 	const MVKExtensionList _supportedExtensions;
 	VkPhysicalDeviceFeatures _features;
+	MVKPhysicalDeviceVulkan12FeaturesNoExt _vulkan12FeaturesNoExt;
 	MVKPhysicalDeviceMetalFeatures _metalFeatures;
 	VkPhysicalDeviceProperties _properties;
 	VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT _texelBuffAlignProperties;
@@ -412,6 +433,7 @@ protected:
 	MVKSmallVector<MVKQueueFamily*, kMVKQueueFamilyCount> _queueFamilies;
 	MVKPixelFormats _pixelFormats;
 	id<MTLCounterSet> _timestampMTLCounterSet;
+	MVKSemaphoreStyle _vkSemaphoreStyle;
 	uint32_t _allMemoryTypes;
 	uint32_t _hostVisibleMemoryTypes;
 	uint32_t _hostCoherentMemoryTypes;
@@ -429,12 +451,6 @@ typedef struct MVKMTLBlitEncoder {
 	id<MTLBlitCommandEncoder> mtlBlitEncoder = nil;
 	id<MTLCommandBuffer> mtlCmdBuffer = nil;
 } MVKMTLBlitEncoder;
-
-typedef enum {
-	MVKSemaphoreStyleUseMTLEvent,
-	MVKSemaphoreStyleUseMTLFence,
-	MVKSemaphoreStyleUseEmulation
-} MVKSemaphoreStyle;
 
 /** Represents a Vulkan logical GPU device, associated with a physical device. */
 class MVKDevice : public MVKDispatchableVulkanAPIObject {
@@ -693,14 +709,17 @@ public:
 	/** Returns the underlying Metal device. */
 	inline id<MTLDevice> getMTLDevice() { return _physicalDevice->getMTLDevice(); }
 
+	/** Returns whether this device is using Metal argument buffers. */
+	bool isUsingMetalArgumentBuffers() { return _isUsingMetalArgumentBuffers; };
+
 	/**
 	 * Returns an autoreleased options object to be used when compiling MSL shaders.
-	 * The useFastMath parameter is and-combined with MVKConfiguration::fastMathEnabled
+	 * The requestFastMath parameter is combined with the value of MVKConfiguration::fastMathEnabled
 	 * to determine whether to enable fast math optimizations in the compiled shader.
 	 * The preserveInvariance parameter indicates that the shader requires the position
 	 * output invariance across invocations (typically for the position output).
 	 */
-	MTLCompileOptions* getMTLCompileOptions(bool useFastMath = true, bool preserveInvariance = false);
+	MTLCompileOptions* getMTLCompileOptions(bool requestFastMath = true, bool preserveInvariance = false);
 
 	/** Returns the Metal vertex buffer index to use for the specified vertex attribute binding number.  */
 	uint32_t getMetalBufferIndexForVertexAttributeBinding(uint32_t binding);
@@ -785,6 +804,9 @@ public:
 	VkPhysicalDevice##structName##Features##extnSfx _enabled##structName##Features;
 #include "MVKDeviceFeatureStructs.def"
 
+	/** VkPhysicalDeviceVulkan12Features entries that did not originate in a prior extension available and enabled. */
+	MVKPhysicalDeviceVulkan12FeaturesNoExt _enabledVulkan12FeaturesNoExt;
+
 	/** Pointer to the Metal-specific features of the underlying physical device. */
 	const MVKPhysicalDeviceMetalFeatures* _pMetalFeatures;
 
@@ -846,10 +868,10 @@ protected:
 	void updateActivityPerformance(MVKPerformanceTracker& activity, uint64_t startTime, uint64_t endTime);
 	void getDescriptorVariableDescriptorCountLayoutSupport(const VkDescriptorSetLayoutCreateInfo* pCreateInfo,
 														   VkDescriptorSetLayoutSupport* pSupport,
-														   VkDescriptorSetVariableDescriptorCountLayoutSupportEXT* pVarDescSetCountSupport);
+														   VkDescriptorSetVariableDescriptorCountLayoutSupport* pVarDescSetCountSupport);
 
-	MVKPhysicalDevice* _physicalDevice;
-    MVKCommandResourceFactory* _commandResourceFactory;
+	MVKPhysicalDevice* _physicalDevice = nullptr;
+    MVKCommandResourceFactory* _commandResourceFactory = nullptr;
 	MVKSmallVector<MVKSmallVector<MVKQueue*, kMVKQueueCountPerQueueFamily>, kMVKQueueFamilyCount> _queuesByQueueFamilyIndex;
 	MVKSmallVector<MVKResource*, 256> _resources;
 	MVKSmallVector<MVKPrivateDataSlot*> _privateDataSlots;
@@ -863,11 +885,11 @@ protected:
     id<MTLBuffer> _globalVisibilityResultMTLBuffer = nil;
 	id<MTLSamplerState> _defaultMTLSamplerState = nil;
 	id<MTLBuffer> _dummyBlitMTLBuffer = nil;
-	MVKSemaphoreStyle _vkSemaphoreStyle = MVKSemaphoreStyleUseEmulation;
     uint32_t _globalVisibilityQueryCount = 0;
 	bool _logActivityPerformanceInline = false;
 	bool _isPerformanceTracking = false;
 	bool _isCurrentlyAutoGPUCapturing = false;
+	bool _isUsingMetalArgumentBuffers = false;
 
 };
 
@@ -887,25 +909,25 @@ class MVKDeviceTrackingMixin {
 public:
 
 	/** Returns the device for which this object was created. */
-	inline MVKDevice* getDevice() { return _device; }
+	MVKDevice* getDevice() { return _device; }
 
 	/** Returns the physical device underlying this logical device. */
-	inline MVKPhysicalDevice* getPhysicalDevice() { return _device->getPhysicalDevice(); }
+	MVKPhysicalDevice* getPhysicalDevice() { return _device->getPhysicalDevice(); }
 
 	/** Returns the underlying Metal device. */
-	inline id<MTLDevice> getMTLDevice() { return _device->getMTLDevice(); }
+	id<MTLDevice> getMTLDevice() { return _device->getMTLDevice(); }
 
 	/** Returns info about the pixel format supported by the physical device. */
-	inline MVKPixelFormats* getPixelFormats() { return _device->getPixelFormats(); }
+	MVKPixelFormats* getPixelFormats() { return _device->getPixelFormats(); }
 
 	/** Returns whether this device is using Metal argument buffers. */
-	inline bool isUsingMetalArgumentBuffers() { return getPhysicalDevice()->isUsingMetalArgumentBuffers(); };
+	bool isUsingMetalArgumentBuffers() { return _device->isUsingMetalArgumentBuffers(); };
 
 	/** Returns whether this device is using one Metal argument buffer for each descriptor set, on multiple pipeline and pipeline stages. */
-	inline bool isUsingDescriptorSetMetalArgumentBuffers() { return isUsingMetalArgumentBuffers() && _device->_pMetalFeatures->descriptorSetArgumentBuffers; };
+	bool isUsingDescriptorSetMetalArgumentBuffers() { return isUsingMetalArgumentBuffers() && _device->_pMetalFeatures->descriptorSetArgumentBuffers; };
 
 	/** Returns whether this device is using one Metal argument buffer for each descriptor set-pipeline-stage combination. */
-	inline bool isUsingPipelineStageMetalArgumentBuffers() { return isUsingMetalArgumentBuffers() && !_device->_pMetalFeatures->descriptorSetArgumentBuffers; };
+	bool isUsingPipelineStageMetalArgumentBuffers() { return isUsingMetalArgumentBuffers() && !_device->_pMetalFeatures->descriptorSetArgumentBuffers; };
 
 	/** Constructs an instance for the specified device. */
     MVKDeviceTrackingMixin(MVKDevice* device) : _device(device) { assert(_device); }

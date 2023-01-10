@@ -69,7 +69,7 @@ document in the `Docs` directory.
 Introduction to MoltenVK
 ------------------------
 
-**MoltenVK** is a layered implementation of [*Vulkan 1.1*](https://www.khronos.org/vulkan) 
+**MoltenVK** is a layered implementation of [*Vulkan 1.2*](https://www.khronos.org/vulkan) 
 graphics and compute functionality, that is built on Apple's [*Metal*](https://developer.apple.com/metal) 
 graphics and compute framework on *macOS*, *iOS*, and *tvOS*. **MoltenVK** allows you to use *Vulkan* 
 graphics and compute functionality to develop modern, cross-platform, high-performance graphical 
@@ -88,7 +88,7 @@ channels, including *Apple's App Store*.
 The **MoltenVK** runtime package contains two products:
 
 - **MoltenVK** is a implementation of an almost-complete subset of the 
-  [*Vulkan 1.1*](https://www.khronos.org/vulkan) graphics and compute API.
+  [*Vulkan 1.2*](https://www.khronos.org/vulkan) graphics and compute API.
 
 - **MoltenVKShaderConverter** converts *SPIR-V* shader code to *Metal Shading Language (MSL)*
   shader code, and converts *GLSL* shader source code to *SPIR-V* shader code and/or
@@ -157,6 +157,20 @@ Building **MoltenVK**
 
 During building, **MoltenVK** references the latest *Apple SDK* frameworks. To access these frameworks, 
 and to avoid build errors, be sure to use the latest publicly available version of *Xcode*.
+
+> ***Note:*** *Xcode 14* introduced a new static linkage model that is not compatible with previous 
+versions of *Xcode*. If you link to a `MoltenVK.xcframework` that was built with *Xcode 14* or later, 
+also use *Xcode 14* or later to link it to your app or game. 
+>
+> If you need to use *Xcode 13* or earlier to link `MoltenVK.xcframework` to your app or game, 
+first build **MoltenVK** with *Xcode 13* or earlier. 
+>
+> Or, if you want to use *Xcode 14* or later to build **MoltenVK**, in order to be able to use the 
+latest *Metal* capabilities, but need to use *Xcode 13* or earlier to link `MoltenVK.xcframework` 
+to your app or game, first add the value `-fno-objc-msgsend-selector-stubs` to the `OTHER_CFLAGS` 
+*Xcode* build setting in the `MoltenVK.xcodeproj` and `MoltenVKShaderConverter.xcodeproj` *Xcode* 
+projects, build **MoltenVK** with *Xcode 14* or later, and then link `MoltenVK.xcframework` 
+to your app or game using *Xcode 13* or earlier.
 
 **MoltenVK** can be built to support at least *macOS 10.11*, *iOS 9*, or *tvOS 9*, but the default 
 _Xcode_ build settings in the included _Xcode_ projects are set to a minimum deployment target of  
@@ -254,20 +268,33 @@ The `make` targets all require that *Xcode* is installed on your system.
 Building from the command line creates the same `Package` folder structure described above when 
 building from within *Xcode*.
 
+When building from the command line, you can set any of the build settings documented in 
+the `vk_mvk_moltenvk.h` file for `MVKConfiguration`, by passing them in the command line, 
+as in the following examples:
+
+	make MVK_CONFIG_LOG_LEVEL=0
+or
+
+	make macos MVK_CONFIG_PREFILL_METAL_COMMAND_BUFFERS=1
+
+...etc.
+
 
 ### Hiding Vulkan API Symbols
 
 You can optionally build MoltenVK with the Vulkan API static call symbols (`vk*`) hidden,
 to avoid library linking conflicts when bound to a Vulkan Loader that also exports identical symbols.
 
-To do so, when building MoltenVK, set the build setting or environment varible `MVK_HIDE_VULKAN_SYMBOLS=1`.
-This build setting can be changed in the `MoltenVK.xcodeproj` *Xcode* project, or it can be included in
-any of the `make` build commands. For example:
+To do so, when building MoltenVK, set the build setting `MVK_HIDE_VULKAN_SYMBOLS=1`.
+This build setting can be set in the `MoltenVK.xcodeproj` *Xcode* project, 
+or it can be included in any of the `make` build commands. For example:
 
 	make MVK_HIDE_VULKAN_SYMBOLS=1
-	...
-	make macos-debug MVK_HIDE_VULKAN_SYMBOLS=1
-	...etc.
+or
+
+	make macos MVK_HIDE_VULKAN_SYMBOLS=1
+	
+...etc.
 
 
 <a name="demos"></a>
@@ -305,11 +332,11 @@ the contents of that directory out of this **MoltenVK** repository into your own
 **MoltenVK** and *Vulkan* Compliance
 ------------------------------------
 
-**MoltenVK** is designed to be an implementation of a *Vulkan 1.1* subset that runs on *macOS*, *iOS*, 
+**MoltenVK** is designed to be an implementation of a *Vulkan 1.2* subset that runs on *macOS*, *iOS*, 
 and *tvOS* platforms by mapping *Vulkan* capability to native *Metal* capability.
 
 The fundamental design and development goal of **MoltenVK** is to provide this capability in a way that 
-is both maximally compliant with the *Vulkan 1.1* specification, and maximally  performant.
+is both maximally compliant with the *Vulkan 1.2* specification, and maximally  performant.
 
 Such compliance and performance is inherently affected by the capability available through *Metal*, as the 
 native graphics driver on *macOS*, *iOS*, and *tvOS* platforms. *Vulkan* compliance may fall into one of 
@@ -389,7 +416,7 @@ Property claims.
 ### *Vulkan* Validation
 
 Despite running on top of *Metal*, **MoltenVK** operates as a *Vulkan* core layer. As such, as per the 
-error handling guidelines of the [*Vulkan* specification](https://www.khronos.org/registry/vulkan/specs/1.1/html/vkspec.html#fundamentals-errors), **MoltenVK** should not perform *Vulkan* validation. When adding functionality 
+error handling guidelines of the [*Vulkan* specification](https://www.khronos.org/registry/vulkan/specs/1.2/html/vkspec.html#fundamentals-errors), **MoltenVK** should not perform *Vulkan* validation. When adding functionality 
 to **MoltenVK**, avoid adding unnecessary validation code.
 
 Validation and error generation **_is_** appropriate within **MoltenVK** in cases where **MoltenVK** deviates 
@@ -406,14 +433,14 @@ behavior from the *Vulkan* specification.
 ### Memory Management
 
 *Metal*, and other *Objective-C* objects in *Apple's SDK* frameworks, use reference counting for memory management. 
-When instantiating *Objective-C* objects, it is important that you do not rely on implied *autorelease pools* to do 
-memory management for you. Because many *Vulkan* games and apps may be ported from other platforms, they will 
-typically not include autorelease pools in their threading models.
+As a contributor to **MoltenVK**, when instantiating *Objective-C* objects, it is important that you do not rely on 
+the app providing *autorelease pools* to do memory management for you. Because many *Vulkan* games and apps may be 
+ported from other platforms, they will often not automatically include autorelease pools in their threading models.
 
-Avoid the use of the `autorelease` method, or any object creation methods that imply use of `autorelease`,
-(eg- `[NSString stringWithFormat: ]`, etc). Instead, favour object creation methods that return a retained object
-(eg- `[[NSString alloc] initWithFormat: ]`, etc), and manually track and release those objects. If you need to use 
-autoreleased objects, wrap code blocks in an `@autoreleasepool {...}` block.
+As a contributor to **MoltenVK**, avoid the use of the *Metal* `autorelease` method, or any object *Metal* creation 
+methods that imply internal use of `autorelease`, (eg- `[NSString stringWithFormat: ]`, etc). Instead, favor object 
+creation methods that return a retained object (eg- `[[NSString alloc] initWithFormat: ]`, etc), and manually track 
+and release those objects. If you need to use autoreleased objects, wrap your code in an `@autoreleasepool {...}` block.
 
 
 ### Code Formatting

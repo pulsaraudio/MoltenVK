@@ -36,8 +36,8 @@
 #endif
 
 /** Macro to determine the Vulkan version supported by MoltenVK. */
-#define MVK_VULKAN_API_VERSION		VK_MAKE_VERSION(VK_VERSION_MAJOR(VK_API_VERSION_1_1),	\
-													VK_VERSION_MINOR(VK_API_VERSION_1_1),	\
+#define MVK_VULKAN_API_VERSION		VK_MAKE_VERSION(VK_VERSION_MAJOR(VK_API_VERSION_1_2),	\
+													VK_VERSION_MINOR(VK_API_VERSION_1_2),	\
 													VK_HEADER_VERSION)
 
 /** 
@@ -105,9 +105,9 @@ void mvkSetConfig(const MVKConfiguration& mvkConfig);
 #   define MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS    mvkOSVersionIsAtLeast(MVK_CONFIG_MTLEVENT_MIN_OS)
 #endif
 
-/** Fill a Metal command buffers when each Vulkan command buffer is filled. */
+/** Fill a Metal command buffer when each Vulkan command buffer is filled. */
 #ifndef MVK_CONFIG_PREFILL_METAL_COMMAND_BUFFERS
-#   define MVK_CONFIG_PREFILL_METAL_COMMAND_BUFFERS    0
+#   define MVK_CONFIG_PREFILL_METAL_COMMAND_BUFFERS    MVK_CONFIG_PREFILL_METAL_COMMAND_BUFFERS_STYLE_NO_PREFILL
 #endif
 
 /**
@@ -173,9 +173,9 @@ void mvkSetConfig(const MVKConfiguration& mvkConfig);
 #   define MVK_CONFIG_FULL_IMAGE_VIEW_SWIZZLE    0
 #endif
 
-/** Set the fastMathEnabled Metal Compiler option. Enabled by default. */
+/** Set the fastMathEnabled Metal Compiler option. Set to always use fast math by default. */
 #ifndef MVK_CONFIG_FAST_MATH_ENABLED
-#   define MVK_CONFIG_FAST_MATH_ENABLED 1
+#   define MVK_CONFIG_FAST_MATH_ENABLED    MVK_CONFIG_FAST_MATH_ALWAYS
 #endif
 
 /** Set the logging level: */
@@ -231,16 +231,17 @@ void mvkSetConfig(const MVKConfiguration& mvkConfig);
 #endif
 
 /**
- * Allow the use of MTLFence or MTLEvent for VkSemaphore synchronization behaviour.
- * By default:
- *   - MVK_ALLOW_METAL_EVENTS is enabled
- *   - MVK_ALLOW_METAL_FENCES is disabled
- * */
-#ifndef MVK_ALLOW_METAL_EVENTS
+ * Determines the style used to implement Vulkan semaphore (VkSemaphore) functionality in Metal.
+ * By default, use Metal events, if availalble, on most platforms.
+ */
+#ifndef MVK_CONFIG_VK_SEMAPHORE_SUPPORT_STYLE
+#   define MVK_CONFIG_VK_SEMAPHORE_SUPPORT_STYLE    MVK_CONFIG_VK_SEMAPHORE_SUPPORT_STYLE_METAL_EVENTS_WHERE_SAFE
+#endif
+#ifndef MVK_ALLOW_METAL_EVENTS		// Deprecated
 #   define MVK_ALLOW_METAL_EVENTS    1
 #endif
-#ifndef MVK_ALLOW_METAL_FENCES
-#   define MVK_ALLOW_METAL_FENCES    0
+#ifndef MVK_ALLOW_METAL_FENCES		// Deprecated
+#   define MVK_ALLOW_METAL_FENCES    1
 #endif
 
 /** Substitute Metal 2D textures for Vulkan 1D images. Enabled by default. */
@@ -280,5 +281,5 @@ void mvkSetConfig(const MVKConfiguration& mvkConfig);
 
 /** Support Metal argument buffers. Disabled by default. */
 #ifndef MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS
-#   define MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS    0
+#   define MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS    MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS_NEVER
 #endif

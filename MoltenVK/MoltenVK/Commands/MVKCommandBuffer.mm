@@ -94,18 +94,19 @@ VkResult MVKCommandBuffer::begin(const VkCommandBufferBeginInfo* pBeginInfo) {
 		}
 	}
 
-    if(canPrefill()) {
-        @autoreleasepool {
-            uint32_t qIdx = 0;
-            _prefilledMTLCmdBuffer = _commandPool->newMTLCommandBuffer(qIdx);    // retain
-            
-            _immediateCmdEncodingContext = new MVKCommandEncodingContext;
-            
-            _immediateCmdEncoder = new MVKCommandEncoder(this);
-            _immediateCmdEncoder->beginEncoding(_prefilledMTLCmdBuffer, _immediateCmdEncodingContext);
-        }
+    if(_device->shouldPrefillMTLCommandBuffers() && !(_isSecondary || _supportsConcurrentExecution)) {
+		@autoreleasepool {
+			_prefilledMTLCmdBuffer = [_commandPool->getMTLCommandBuffer(0) retain];    // retained
+			auto prefillStyle = mvkConfig().prefillMetalCommandBuffers;
+			if (prefillStyle == MVK_CONFIG_PREFILL_METAL_COMMAND_BUFFERS_STYLE_IMMEDIATE_ENCODING ||
+				prefillStyle == MVK_CONFIG_PREFILL_METAL_COMMAND_BUFFERS_STYLE_IMMEDIATE_ENCODING_NO_AUTORELEASE ) {
+				_immediateCmdEncodingContext = new MVKCommandEncodingContext;
+				_immediateCmdEncoder = new MVKCommandEncoder(this, prefillStyle);
+				_immediateCmdEncoder->beginEncoding(_prefilledMTLCmdBuffer, _immediateCmdEncodingContext);
+			}
+		}
     }
-    
+
     return getConfigurationResult();
 }
 
@@ -162,8 +163,23 @@ VkResult MVKCommandBuffer::end() {
 	_canAcceptCommands = false;
     
     flushImmediateCmdEncoder();
-    
+	checkDeferredEncoding();
+
 	return getConfigurationResult();
+}
+
+void MVKCommandBuffer::checkDeferredEncoding() {
+	if (mvkConfig().prefillMetalCommandBuffers == MVK_CONFIG_PREFILL_METAL_COMMAND_BUFFERS_STYLE_DEFERRED_ENCODING) {
+		@autoreleasepool {
+			MVKCommandEncodingContext encodingContext;
+			MVKCommandEncoder encoder(this);
+			encoder.encode(_prefilledMTLCmdBuffer, &encodingContext);
+
+			// Once encoded onto Metal, if this command buffer is not reusable, we don't need the
+			// MVKCommand instances anymore, so release them in order to reduce memory pressure.
+			if ( !_isReusable ) { releaseRecordedCommands(); }
+		}
+	}
 }
 
 void MVKCommandBuffer::addCommand(MVKCommand* command) {
@@ -176,7 +192,6 @@ void MVKCommandBuffer::addCommand(MVKCommand* command) {
 
     if(_immediateCmdEncoder) {
         _immediateCmdEncoder->encodeCommands(command);
-        
         if( !_isReusable ) {
             releaseCommands(command);
             return;
@@ -222,11 +237,6 @@ bool MVKCommandBuffer::canExecute() {
 
 	_wasExecuted = true;
 	return true;
-}
-
-bool MVKCommandBuffer::canPrefill() {
-	bool wantPrefill = _device->shouldPrefillMTLCommandBuffers();
-	return wantPrefill && !(_isSecondary || _supportsConcurrentExecution);
 }
 
 void MVKCommandBuffer::clearPrefilledMTLCommandBuffer() {
@@ -332,7 +342,18 @@ void MVKCommandEncoder::beginEncoding(id<MTLCommandBuffer> mtlCmdBuff, MVKComman
     setLabelIfNotNil(_mtlCmdBuffer, _cmdBuffer->_debugName);
 }
 
+// Multithread autorelease prefill style uses a dedicated autorelease pool when encoding each command.
 void MVKCommandEncoder::encodeCommands(MVKCommand* command) {
+	if (_prefillStyle == MVK_CONFIG_PREFILL_METAL_COMMAND_BUFFERS_STYLE_IMMEDIATE_ENCODING) {
+		@autoreleasepool {
+			encodeCommandsImpl(command);
+		}
+	} else {
+		encodeCommandsImpl(command);
+	}
+}
+
+void MVKCommandEncoder::encodeCommandsImpl(MVKCommand* command) {
     while(command) {
         uint32_t prevMVPassIdx = _multiviewPassIndex;
         command->encode(this);
@@ -465,6 +486,21 @@ void MVKCommandEncoder::setDynamicSamplePositions(MVKArrayRef<MTLSamplePosition>
 	_dynamicSamplePositions.assign(dynamicSamplePositions.begin(), dynamicSamplePositions.end());
 }
 
+// Retain encoders when prefilling, because prefilling may span multiple autorelease pools.
+template<typename T>
+void MVKCommandEncoder::retainIfImmediatelyEncoding(T& mtlEnc) {
+	if (_cmdBuffer->_immediateCmdEncoder) { [mtlEnc retain]; }
+}
+
+// End Metal encoder and release retained encoders when immediately encoding.
+template<typename T>
+void MVKCommandEncoder::endMetalEncoding(T& mtlEnc) {
+	[mtlEnc endEncoding];
+	if (_cmdBuffer->_immediateCmdEncoder) { [mtlEnc release]; }
+	mtlEnc = nil;
+}
+
+
 // Creates _mtlRenderEncoder and marks cached render state as dirty so it will be set into the _mtlRenderEncoder.
 void MVKCommandEncoder::beginMetalRenderPass(MVKCommandUse cmdUse) {
 
@@ -486,11 +522,18 @@ void MVKCommandEncoder::beginMetalRenderPass(MVKCommandUse cmdUse) {
 		mtlRPDesc.visibilityResultBuffer = _pEncodingContext->visibilityResultBuffer->_mtlBuffer;
 	}
 
-	VkExtent2D fbExtent = getFramebufferExtent();
-    if (@available(macos 10.15, ios 11.0, tvos 14.5, macCatalyst 13.0, *)) {
-        mtlRPDesc.renderTargetWidth = max(min(_renderArea.offset.x + _renderArea.extent.width, fbExtent.width), 1u);
-        mtlRPDesc.renderTargetHeight = max(min(_renderArea.offset.y + _renderArea.extent.height, fbExtent.height), 1u);
-    }
+	// Metal uses MTLRenderPassDescriptor properties renderTargetWidth, renderTargetHeight,
+	// and renderTargetArrayLength to preallocate tile memory storage on machines using tiled
+	// rendering. This memory preallocation is not necessary if we are not rendering to
+	// attachments, and some apps actively define extremely oversized framebuffers when they
+	// know they are not rendering to actual attachments, making this internal tile memory
+	// allocation even more wasteful, occasionally to the point of triggering OOM crashes.
+	bool hasAttachments = _attachments.size() > 0;
+	if (hasAttachments && @available(macos 10.15, ios 11.0, tvos 14.5, macCatalyst 13.0, *)) {
+		VkExtent2D fbExtent = getFramebufferExtent();
+		mtlRPDesc.renderTargetWidth = max(min(_renderArea.offset.x + _renderArea.extent.width, fbExtent.width), 1u);
+		mtlRPDesc.renderTargetHeight = max(min(_renderArea.offset.y + _renderArea.extent.height, fbExtent.height), 1u);
+	}
     if (_canUseLayeredRendering) {
         bool found3D = false, found2D = false;
         for (uint32_t i = 0; i < 8; i++) {
@@ -513,7 +556,7 @@ void MVKCommandEncoder::beginMetalRenderPass(MVKCommandUse cmdUse) {
             } else {
                 renderTargetArrayLength = getFramebufferLayerCount();
             }
-        // Metal does not allow layered render passes where some RTs are 3D and others are 2D.
+            // Metal does not allow layered render passes where some RTs are 3D and others are 2D.
             if (!(found3D && found2D) || renderTargetArrayLength > 1) {
                 mtlRPDesc.renderTargetArrayLength = renderTargetArrayLength;
             }
@@ -528,7 +571,8 @@ void MVKCommandEncoder::beginMetalRenderPass(MVKCommandUse cmdUse) {
 		[mtlRPDesc setSamplePositions: cstmSampPosns.data count: cstmSampPosns.size];
 	}
 
-    _mtlRenderEncoder = [_mtlCmdBuffer renderCommandEncoderWithDescriptor: mtlRPDesc];     // not retained
+    _mtlRenderEncoder = [_mtlCmdBuffer renderCommandEncoderWithDescriptor: mtlRPDesc];
+	retainIfImmediatelyEncoding(_mtlRenderEncoder);
 	setLabelIfNotNil(_mtlRenderEncoder, getMTLRenderCommandEncoderName(cmdUse));
 
 	// We shouldn't clear the render area if we are restarting the Metal renderpass
@@ -663,7 +707,7 @@ void MVKCommandEncoder::finalizeDrawState(MVKGraphicsStage stage) {
         encodeStoreActions(true);
     }
     _graphicsPipelineState.encode(stage);    // Must do first..it sets others
-    _graphicsResourcesState.encode(stage);
+    _graphicsResourcesState.encode(stage);   // Before push constants, to allow them to override.
     _viewportState.encode(stage);
     _scissorState.encode(stage);
     _depthBiasState.encode(stage);
@@ -729,7 +773,7 @@ void MVKCommandEncoder::beginMetalComputeEncoding(MVKCommandUse cmdUse) {
 
 void MVKCommandEncoder::finalizeDispatchState() {
     _computePipelineState.encode();    // Must do first..it sets others
-    _computeResourcesState.encode();
+    _computeResourcesState.encode();   // Before push constants, to allow them to override.
     _computePushConstants.encode();
 }
 
@@ -751,8 +795,7 @@ void MVKCommandEncoder::endMetalRenderEncoding() {
     if (_mtlRenderEncoder == nil) { return; }
 
 	if (_cmdBuffer->_hasStageCounterTimestampCommand) { [_mtlRenderEncoder updateFence: getStageCountersMTLFence() afterStages: MTLRenderStageFragment]; }
-    [_mtlRenderEncoder endEncoding];
-	_mtlRenderEncoder = nil;    // not retained
+	endMetalEncoding(_mtlRenderEncoder);
 
 	getSubpass()->resolveUnresolvableAttachments(this, _attachments.contents());
 
@@ -779,13 +822,11 @@ void MVKCommandEncoder::endCurrentMetalEncoding() {
 	_computePushConstants.markDirty();
 
 	if (_mtlComputeEncoder && _cmdBuffer->_hasStageCounterTimestampCommand) { [_mtlComputeEncoder updateFence: getStageCountersMTLFence()]; }
-	[_mtlComputeEncoder endEncoding];
-	_mtlComputeEncoder = nil;       // not retained
+	endMetalEncoding(_mtlComputeEncoder);
 	_mtlComputeEncoderUse = kMVKCommandUseNone;
 
 	if (_mtlBlitEncoder && _cmdBuffer->_hasStageCounterTimestampCommand) { [_mtlBlitEncoder updateFence: getStageCountersMTLFence()]; }
-	[_mtlBlitEncoder endEncoding];
-	_mtlBlitEncoder = nil;          // not retained
+	endMetalEncoding(_mtlBlitEncoder);
     _mtlBlitEncoderUse = kMVKCommandUseNone;
 
 	encodeTimestampStageCounterSamples();
@@ -794,7 +835,8 @@ void MVKCommandEncoder::endCurrentMetalEncoding() {
 id<MTLComputeCommandEncoder> MVKCommandEncoder::getMTLComputeEncoder(MVKCommandUse cmdUse) {
 	if ( !_mtlComputeEncoder ) {
 		endCurrentMetalEncoding();
-		_mtlComputeEncoder = [_mtlCmdBuffer computeCommandEncoder];		// not retained
+		_mtlComputeEncoder = [_mtlCmdBuffer computeCommandEncoder];
+		retainIfImmediatelyEncoding(_mtlComputeEncoder);
 		beginMetalComputeEncoding(cmdUse);
 	}
 	if (_mtlComputeEncoderUse != cmdUse) {
@@ -807,7 +849,8 @@ id<MTLComputeCommandEncoder> MVKCommandEncoder::getMTLComputeEncoder(MVKCommandU
 id<MTLBlitCommandEncoder> MVKCommandEncoder::getMTLBlitEncoder(MVKCommandUse cmdUse) {
 	if ( !_mtlBlitEncoder ) {
 		endCurrentMetalEncoding();
-		_mtlBlitEncoder = [_mtlCmdBuffer blitCommandEncoder];   // not retained
+		_mtlBlitEncoder = [_mtlCmdBuffer blitCommandEncoder];
+		retainIfImmediatelyEncoding(_mtlBlitEncoder);
 	}
     if (_mtlBlitEncoderUse != cmdUse) {
         _mtlBlitEncoderUse = cmdUse;
@@ -849,7 +892,7 @@ void MVKCommandEncoder::setVertexBytes(id<MTLRenderCommandEncoder> mtlEncoder,
     }
 
 	if (descOverride) {
-		_graphicsResourcesState.markBufferIndexDirty(kMVKShaderStageVertex, mtlBuffIndex);
+		_graphicsResourcesState.markBufferIndexOverridden(kMVKShaderStageVertex, mtlBuffIndex);
 	}
 }
 
@@ -866,7 +909,7 @@ void MVKCommandEncoder::setFragmentBytes(id<MTLRenderCommandEncoder> mtlEncoder,
     }
 
 	if (descOverride) {
-		_graphicsResourcesState.markBufferIndexDirty(kMVKShaderStageFragment, mtlBuffIndex);
+		_graphicsResourcesState.markBufferIndexOverridden(kMVKShaderStageFragment, mtlBuffIndex);
 	}
 }
 
@@ -883,7 +926,7 @@ void MVKCommandEncoder::setComputeBytes(id<MTLComputeCommandEncoder> mtlEncoder,
     }
 
 	if (descOverride) {
-		_computeResourcesState.markBufferIndexDirty(mtlBuffIndex);
+		_computeResourcesState.markBufferIndexOverridden(mtlBuffIndex);
 	}
 }
 
@@ -981,7 +1024,7 @@ void MVKCommandEncoder::encodeTimestampStageCounterSamples() {
 		// in Xcode 13 as inaccurate for all platforms. Leave this value at 1 until we can figure out how to
 		// accurately determine the length of sampleBufferAttachments on each platform.
 		uint32_t maxMTLBlitPassSampleBuffers = 1;		// Was MTLMaxBlitPassSampleBuffers API definition
-		auto* bpDesc = [[[MTLBlitPassDescriptor alloc] init] autorelease];
+		auto* bpDesc = [MTLBlitPassDescriptor new];		// temp retained
 		for (uint32_t attIdx = 0; attIdx < maxMTLBlitPassSampleBuffers && qIdx < qCnt; attIdx++, qIdx++) {
 			auto* sbAttDesc = bpDesc.sampleBufferAttachments[attIdx];
 			auto& tsQry = _timestampStageCounterQueries[qIdx];
@@ -996,6 +1039,7 @@ void MVKCommandEncoder::encodeTimestampStageCounterSamples() {
 
 		auto* mtlEnc = [_mtlCmdBuffer blitCommandEncoderWithDescriptor: bpDesc];
 		setLabelIfNotNil(mtlEnc, mvkMTLBlitCommandEncoderLabel(kMVKCommandUseRecordGPUCounterSample));
+		[bpDesc release];		// Release temp object
 		[mtlEnc waitForFence: getStageCountersMTLFence()];
 		[mtlEnc fillBuffer: _device->getDummyBlitMTLBuffer() range: NSMakeRange(0, 1) value: 0];
 		[mtlEnc endEncoding];
@@ -1049,7 +1093,8 @@ void MVKCommandEncoder::finishQueries() {
 
 #pragma mark Construction
 
-MVKCommandEncoder::MVKCommandEncoder(MVKCommandBuffer* cmdBuffer) : MVKBaseDeviceObject(cmdBuffer->getDevice()),
+MVKCommandEncoder::MVKCommandEncoder(MVKCommandBuffer* cmdBuffer,
+									 MVKPrefillMetalCommandBuffersStyle prefillStyle) : MVKBaseDeviceObject(cmdBuffer->getDevice()),
         _cmdBuffer(cmdBuffer),
         _graphicsPipelineState(this),
         _computePipelineState(this),
@@ -1066,7 +1111,8 @@ MVKCommandEncoder::MVKCommandEncoder(MVKCommandBuffer* cmdBuffer) : MVKBaseDevic
         _tessEvalPushConstants(this, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT),
         _fragmentPushConstants(this, VK_SHADER_STAGE_FRAGMENT_BIT),
         _computePushConstants(this, VK_SHADER_STAGE_COMPUTE_BIT),
-        _occlusionQueryState(this) {
+        _occlusionQueryState(this),
+		_prefillStyle(prefillStyle){
 
             _pDeviceFeatures = &_device->_enabledFeatures;
             _pDeviceMetalFeatures = _device->_pMetalFeatures;
@@ -1081,6 +1127,14 @@ MVKCommandEncoder::MVKCommandEncoder(MVKCommandBuffer* cmdBuffer) : MVKBaseDevic
             _mtlBlitEncoderUse = kMVKCommandUseNone;
 			_pEncodingContext = nullptr;
 			_stageCountersMTLFence = nil;
+			_flushCount = 0;
+}
+
+MVKCommandEncoder::~MVKCommandEncoder() {
+	[_mtlRenderEncoder release];
+	[_mtlComputeEncoder release];
+	[_mtlBlitEncoder release];
+	// _stageCountersMTLFence is released after Metal command buffer completion
 }
 
 

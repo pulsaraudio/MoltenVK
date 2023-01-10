@@ -144,7 +144,7 @@ void MVKImagePlane::initSubresources(const VkImageCreateInfo* pCreateInfo) {
 
     VkDeviceSize offset = 0;
     if (_planeIndex > 0 && _image->_memoryBindings.size() == 1) {
-        if (!_image->_isLinear && _image->getDevice()->_pMetalFeatures->placementHeaps) {
+        if (!_image->_isLinear && !_image->_isLinearForAtomics && _image->getDevice()->_pMetalFeatures->placementHeaps) {
             // For textures allocated directly on the heap, we need to obey the size and alignment
             // requirements reported by the device.
             MTLTextureDescriptor* mtlTexDesc = _image->_planes[_planeIndex-1]->newMTLTextureDescriptor();    // temp retain
@@ -856,7 +856,7 @@ MTLTextureUsage MVKImage::getMTLTextureUsage(MTLPixelFormat mtlPixFmt) {
 		needsReinterpretation = needsReinterpretation || !pixFmts->compatibleAsLinearOrSRGB(mtlPixFmt, viewFmt);
 	}
 
-	MTLTextureUsage mtlUsage = pixFmts->getMTLTextureUsage(getCombinedUsage(), mtlPixFmt, _samples, _isLinear, needsReinterpretation, _hasExtendedUsage);
+	MTLTextureUsage mtlUsage = pixFmts->getMTLTextureUsage(getCombinedUsage(), mtlPixFmt, _samples, _isLinear || _isLinearForAtomics, needsReinterpretation, _hasExtendedUsage);
 
 	// Metal before 3.0 doesn't support 3D compressed textures, so we'll
 	// decompress the texture ourselves, and we need to be able to write to it.
@@ -930,7 +930,7 @@ MVKImage::MVKImage(MVKDevice* device, const VkImageCreateInfo* pCreateInfo) : MV
     // If this is a storage image of format R32_UINT or R32_SINT, or MUTABLE_FORMAT is set
     // and R32_UINT is in the set of possible view formats, then we must use a texel buffer,
     // or image atomics won't work.
-	_isLinearForAtomics = (_isLinear && mvkIsAnyFlagEnabled(getCombinedUsage(), VK_IMAGE_USAGE_STORAGE_BIT) &&
+	_isLinearForAtomics = (_arrayLayers == 1 && _mipLevels == 1 && getImageType() == VK_IMAGE_TYPE_2D && mvkIsAnyFlagEnabled(getCombinedUsage(), VK_IMAGE_USAGE_STORAGE_BIT) &&
 						   ((_vkFormat == VK_FORMAT_R32_UINT || _vkFormat == VK_FORMAT_R32_SINT) ||
 							(_hasMutableFormat && pixFmts->getViewClass(_vkFormat) == MVKMTLViewClass::Color32 &&
 							 (getIsValidViewFormat(VK_FORMAT_R32_UINT) || getIsValidViewFormat(VK_FORMAT_R32_SINT)))));
@@ -939,7 +939,7 @@ MVKImage::MVKImage(MVKDevice* device, const VkImageCreateInfo* pCreateInfo) : MV
 	_isDepthStencilAttachment = (mvkAreAllFlagsEnabled(pCreateInfo->usage, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) ||
 								 mvkAreAllFlagsEnabled(pixFmts->getVkFormatProperties(pCreateInfo->format).optimalTilingFeatures, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT));
 	_canSupportMTLTextureView = !_isDepthStencilAttachment || _device->_pMetalFeatures->stencilViews;
-	_rowByteAlignment = _isLinear ? _device->getVkFormatTexelBufferAlignment(pCreateInfo->format, this) : mvkEnsurePowerOfTwo(pixFmts->getBytesPerBlock(pCreateInfo->format));
+	_rowByteAlignment = _isLinear || _isLinearForAtomics ? _device->getVkFormatTexelBufferAlignment(pCreateInfo->format, this) : mvkEnsurePowerOfTwo(pixFmts->getBytesPerBlock(pCreateInfo->format));
 
     VkExtent2D blockTexelSizeOfPlane[3];
     uint32_t bytesPerBlockOfPlane[3];
@@ -964,7 +964,7 @@ MVKImage::MVKImage(MVKDevice* device, const VkImageCreateInfo* pCreateInfo) : MV
         }
         _planes[planeIndex]->initSubresources(pCreateInfo);
         MVKImageMemoryBinding* memoryBinding = _planes[planeIndex]->getMemoryBinding();
-        if (!_isLinear && _device->_pMetalFeatures->placementHeaps) {
+        if (!_isLinear && !_isLinearForAtomics && _device->_pMetalFeatures->placementHeaps) {
             MTLTextureDescriptor* mtlTexDesc = _planes[planeIndex]->newMTLTextureDescriptor();    // temp retain
             MTLSizeAndAlign sizeAndAlign = [_device->getMTLDevice() heapTextureSizeAndAlignWithDescriptor: mtlTexDesc];
             [mtlTexDesc release];
@@ -1190,12 +1190,16 @@ MVKSwapchainImage::MVKSwapchainImage(MVKDevice* device,
 									 uint32_t swapchainIndex) : MVKImage(device, pCreateInfo) {
 	_swapchain = swapchain;
 	_swapchainIndex = swapchainIndex;
-
-	_swapchain->retain();
 }
 
-MVKSwapchainImage::~MVKSwapchainImage() {
-	if (_swapchain) { _swapchain->release(); }
+void MVKSwapchainImage::detachSwapchain() {
+	lock_guard<mutex> lock(_swapchainLock);
+	_swapchain = nullptr;
+}
+
+void MVKSwapchainImage::destroy() {
+	detachSwapchain();
+	MVKImage::destroy();
 }
 
 
@@ -1283,6 +1287,18 @@ void MVKPresentableSwapchainImage::unmarkAsTracked(const MVKSwapchainSignaler& s
 	if (signaler.fence) { signaler.fence->release(); }
 }
 
+// Untrack any signalers that are still tracking, releasing the fences and semaphores.
+void MVKPresentableSwapchainImage::untrackAllSignalers() {
+	lock_guard<mutex> lock(_availabilityLock);
+
+	if ( !_availability.isAvailable ) {
+		unmarkAsTracked(_preSignaler);
+		for (auto& sig : _availabilitySignalers) {
+			unmarkAsTracked(sig);
+		}
+	}
+}
+
 
 #pragma mark Metal
 
@@ -1308,10 +1324,19 @@ void MVKPresentableSwapchainImage::presentCAMetalDrawable(id<MTLCommandBuffer> m
 
 	_swapchain->willPresentSurface(getMTLTexture(0), mtlCmdBuff);
 
-	// Get current drawable now. Don't retrieve in handler, because a new drawable might be acquired by then.
+	// According to Apple, it is more performant to call MTLDrawable present from within a
+	// MTLCommandBuffer scheduled-handler than it is to call MTLCommandBuffer presentDrawable:.
+	// But get current drawable now, intead of in handler, because a new drawable might be acquired by then.
+	// Attach present handler before presenting to avoid race condition.
 	id<CAMetalDrawable> mtlDrwbl = getCAMetalDrawable();
 	[mtlCmdBuff addScheduledHandler: ^(id<MTLCommandBuffer> mcb) {
-		presentCAMetalDrawable(mtlDrwbl, presentTimingInfo);
+		if (presentTimingInfo.hasPresentTime) {
+			// Convert from nsecs to seconds for Metal
+			addPresentedHandler(mtlDrwbl, presentTimingInfo);
+			[mtlDrwbl presentAtTime: (double)presentTimingInfo.desiredPresentTime * 1.0e-9];
+		} else {
+			[mtlDrwbl present];
+		}
 	}];
 
 	MVKSwapchainSignaler signaler;
@@ -1332,9 +1357,12 @@ void MVKPresentableSwapchainImage::presentCAMetalDrawable(id<MTLCommandBuffer> m
 		_availabilitySignalers.erase(sigIter);
 	}
 
-	// Ensure this image is not destroyed while awaiting MTLCommandBuffer completion
+	// Ensure this image and the drawable are not destroyed while awaiting MTLCommandBuffer completion.
+	// We retain the drawable separately because new drawable might be acquired by this image by then.
 	retain();
+	[mtlDrwbl retain];
 	[mtlCmdBuff addCompletedHandler: ^(id<MTLCommandBuffer> mcb) {
+		[mtlDrwbl release];
 		makeAvailable(signaler);
 		release();
 	}];
@@ -1342,33 +1370,29 @@ void MVKPresentableSwapchainImage::presentCAMetalDrawable(id<MTLCommandBuffer> m
 	signalPresentationSemaphore(signaler, mtlCmdBuff);
 }
 
-void MVKPresentableSwapchainImage::presentCAMetalDrawable(id<CAMetalDrawable> mtlDrawable,
-														  MVKPresentTimingInfo presentTimingInfo) {
-
-	if (presentTimingInfo.hasPresentTime) {
-
-		// Attach present handler before presenting to avoid race condition.
-		// If MTLDrawable.presentedTime/addPresentedHandler isn't supported,
-		// treat it as if the present happened when requested.
-#if MVK_OS_SIMULATOR
-		_swapchain->recordPresentTime(presentTimingInfo);
-#else
-		if ([mtlDrawable respondsToSelector: @selector(addPresentedHandler:)]) {
-			// Ensure this image is not destroyed while awaiting presentation
-			retain();
-			[mtlDrawable addPresentedHandler: ^(id<MTLDrawable> drawable) {
-				_swapchain->recordPresentTime(presentTimingInfo, drawable.presentedTime * 1.0e9);
-				release();
-			}];
-		} else {
-			_swapchain->recordPresentTime(presentTimingInfo);
-		}
-#endif
-		// Convert from nsecs to seconds for Metal
-		[mtlDrawable presentAtTime: (double)presentTimingInfo.desiredPresentTime * 1.0e-9];
-	} else {
-		[mtlDrawable present];
+void MVKPresentableSwapchainImage::addPresentedHandler(id<CAMetalDrawable> mtlDrawable,
+													   MVKPresentTimingInfo presentTimingInfo) {
+#if !MVK_OS_SIMULATOR
+	if ([mtlDrawable respondsToSelector: @selector(addPresentedHandler:)]) {
+		retain();	// Ensure this image is not destroyed while awaiting presentation
+		[mtlDrawable addPresentedHandler: ^(id<MTLDrawable> drawable) {
+			// Since we're in a callback, it's possible that the swapchain has been released by now.
+			// Lock the swapchain, and test if it is present before doing anything with it.
+			lock_guard<mutex> cblock(_swapchainLock);
+			if (_swapchain) { _swapchain->recordPresentTime(presentTimingInfo, drawable.presentedTime * 1.0e9); }
+			release();
+		}];
+		return;
 	}
+#endif
+
+	// If MTLDrawable.presentedTime/addPresentedHandler isn't supported,
+	// treat it as if the present happened when requested.
+	// Since this function may be called in a callback, it's possible that
+	// the swapchain has been released by the time this function runs.
+	// Lock the swapchain, and test if it is present before doing anything with it.
+	lock_guard<mutex> lock(_swapchainLock);
+	if (_swapchain) {_swapchain->recordPresentTime(presentTimingInfo); }
 }
 
 // Resets the MTLTexture and CAMetalDrawable underlying this image.
@@ -1396,8 +1420,11 @@ MVKPresentableSwapchainImage::MVKPresentableSwapchainImage(MVKDevice* device,
 	_preSignaler = MVKSwapchainSignaler{nullptr, nullptr, 0};
 }
 
+// Unsignaled signalers will exist if this image is acquired more than it is presented.
+// Ensure they are untracked so the fences and semaphores will be released.
 MVKPresentableSwapchainImage::~MVKPresentableSwapchainImage() {
 	releaseMetalDrawable();
+	untrackAllSignalers();
 }
 
 
@@ -2071,11 +2098,16 @@ MTLSamplerDescriptor* MVKSampler::newMTLSamplerDescriptor(const VkSamplerCreateI
 
 MVKSampler::MVKSampler(MVKDevice* device, const VkSamplerCreateInfo* pCreateInfo) : MVKVulkanAPIDeviceObject(device) {
     _ycbcrConversion = NULL;
+	const VkSamplerReductionModeCreateInfo* pSampReductInfo = nullptr;
     for (const auto* next = (const VkBaseInStructure*)pCreateInfo->pNext; next; next = next->pNext) {
 		switch (next->sType) {
 			case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO_KHR: {
 				const VkSamplerYcbcrConversionInfoKHR* sampConvInfo = (const VkSamplerYcbcrConversionInfoKHR*)next;
 				_ycbcrConversion = (MVKSamplerYcbcrConversion*)(sampConvInfo->conversion);
+				break;
+			}
+			case VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO: {
+				pSampReductInfo = (const VkSamplerReductionModeCreateInfo*)next;
 				break;
 			}
 			default:

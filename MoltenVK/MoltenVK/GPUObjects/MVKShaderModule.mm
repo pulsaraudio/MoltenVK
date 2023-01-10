@@ -288,7 +288,7 @@ MVKMTLFunction MVKShaderModule::getMTLFunction(SPIRVToMSLConversionConfiguration
 		_device->addActivityPerformance(_device->_performanceStatistics.shaderCompilation.shaderLibraryFromCache, startTime);
 	} else {
 		mvkLib->setEntryPointName(pShaderConfig->options.entryPointName);
-		pShaderConfig->markAllInputsAndResourcesUsed();
+		pShaderConfig->markAllInterfaceVarsAndResourcesUsed();
 	}
 
 	return mvkLib ? mvkLib->getMTLFunction(pSpecializationInfo, this) : MVKMTLFunctionNull;
@@ -447,9 +447,11 @@ id<MTLLibrary> MVKShaderLibraryCompiler::newMTLLibrary(NSString* mslSourceCode,
 	compile(lock, ^{
 		auto mtlDev = _owner->getMTLDevice();
 		@synchronized (mtlDev) {
+			auto mtlCompileOptions = _owner->getDevice()->getMTLCompileOptions(shaderConversionResults.entryPoint.supportsFastMath,
+																			   shaderConversionResults.isPositionInvariant);
+			MVKLogInfoIf(mvkConfig().debugMode, "Compiling Metal shader%s.", mtlCompileOptions.fastMathEnabled ? " with FastMath enabled" : "");
 			[mtlDev newLibraryWithSource: mslSourceCode
-								 options: _owner->getDevice()->getMTLCompileOptions(shaderConversionResults.entryPoint.supportsFastMath,
-																					shaderConversionResults.isPositionInvariant)
+								 options: mtlCompileOptions
 					   completionHandler: ^(id<MTLLibrary> mtlLib, NSError* error) {
 						   bool isLate = compileComplete(mtlLib, error);
 						   if (isLate) { destroy(); }

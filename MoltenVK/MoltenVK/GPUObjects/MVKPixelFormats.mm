@@ -2054,6 +2054,7 @@ void MVKPixelFormats::setFormatProperties(MVKVkFormatDesc& vkDesc) {
 	enableFormatFeatures(Read, Tex, mtlPixFmtCaps, vkProps.optimalTilingFeatures);
 	enableFormatFeatures(Filter, Tex, mtlPixFmtCaps, vkProps.optimalTilingFeatures);
 	enableFormatFeatures(Write, Tex, mtlPixFmtCaps, vkProps.optimalTilingFeatures);
+	enableFormatFeatures(Atomic, Tex, mtlPixFmtCaps, vkProps.optimalTilingFeatures);
 	enableFormatFeatures(ColorAtt, Tex, mtlPixFmtCaps, vkProps.optimalTilingFeatures);
 	enableFormatFeatures(DSAtt, Tex, mtlPixFmtCaps, vkProps.optimalTilingFeatures);
 	enableFormatFeatures(Blend, Tex, mtlPixFmtCaps, vkProps.optimalTilingFeatures);
@@ -2086,9 +2087,6 @@ void MVKPixelFormats::setFormatProperties(MVKVkFormatDesc& vkDesc) {
 		   (chromaSubsamplingPlaneCount == 1 && vkDesc.blockTexelSize.width > 1)) ) {
 		// Start with optimal tiling features, and modify.
 		vkProps.linearTilingFeatures = vkProps.optimalTilingFeatures;
-
-		// Linear tiling can support atomic writing for some formats, even though optimal tiling does not.
-		enableFormatFeatures(Atomic, Tex, mtlPixFmtCaps, vkProps.linearTilingFeatures);
 
 #if !MVK_APPLE_SILICON
 		// On macOS IMR GPUs, linear textures cannot be used as attachments, so disable those features.

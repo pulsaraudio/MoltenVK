@@ -13,6 +13,100 @@ Copyright (c) 2015-2022 [The Brenwill Workshop Ltd.](http://www.brenwill.com)
 
 
 
+MoltenVK 1.2.2
+--------------
+
+Released TBD
+
+- Fix Metal validation error caused by `CAMetalDrawable` released before 
+  `MTLCommandBuffer` is finished using it.
+- Fix memory leak of `MVKFences` and `MVKSemaphores` when 
+  a swapchain image is acquired more than it is presented.
+
+
+
+MoltenVK 1.2.1
+--------------
+
+Released 2022/12/08
+
+- Add support for extensions:
+	- `VK_KHR_copy_commands2`
+- Fix crash on descriptor update with out-of-bounds descriptor count data.
+- Fix Metal buffer index binding overrides for push constants and attachment clearing.
+- Fix crash when buffer binding updates only offset while it is overridden.
+- Fix app performance regression triggered by the previous introduction of `VK_KHR_shader_float_controls`.
+- Work around `MTLCounterSet` crash on additional Intel Iris Plus Graphics devices.
+- Fix mistaken YCBCR format support indication.
+- Fix invalid blit offsets.
+- Wait on emulated semaphores only once to prevent freezing when using prefilled command buffers.
+- `MVKPipeline`: Stop using vertex-style input for tessellation evaluation shaders.
+- `MVKPipeline`: Force extra checks for stores after fragment discard.
+- `MVKImage`: Always use a texel buffer for atomic storage images.
+- `MVKDevice`: Fix backwards attribution of storage/uniform texel buffer alignments.
+- Document new linkage model used by *Xcode 14* and later, and how to link **MoltenVK**
+  to an app or game using *Xcode 13* or earlier.
+- Support *Xcode 14.1* build settings.
+- Upgrade GitHub CI to use *Xcode 14.1* on *macOS 12*.
+- Update dependency libraries to match _Vulkan SDK 1.3.236_.
+- Update to latest SPIRV-Cross:
+  - MSL: Implement `CompositeInsert` `OpSpecConstantOp`.
+  - MSL: Support "raw" buffer input in tessellation evaluation shaders.
+  - MSL: Don't flatten arrayed per-patch output blocks in tessellation shaders.
+  - MSL: Account for composite types when assigning locations.
+  - MSL: Handle partial access chains with array-of-UBO/SSBO.
+  - MSL: Fix restrict vs __restrict incompatibility.
+  - MSL: Handle implicit integer promotion rules.
+  - MSL: Manually update `BuiltInHelperInvocation` when a fragment is discarded.
+  - MSL: Add missing casts to `Op?MulExtended`.
+  - MSL: Prevent stores to storage resources in discarded fragments.
+  - MSL: Don't dereference forwarded copies of `OpVariable` pointers.
+  - MSL: Refactor member reference in terms of one boolean.
+  - Fix MSL Access Chain.
+
+
+
+MoltenVK 1.2.0
+--------------
+
+Released 2022/10/17
+
+- Add support for _Vulkan 1.2_.
+- Add support for extensions:
+	- `VK_KHR_shader_float_controls`
+	- `VK_KHR_spirv_1_4`
+- Vulkan semaphore functional improvements:
+	- Replace use of `MTLFence` with an option to limit to a single Vulkan queue and use Metal's implicit submisison order guarantees.
+	- Support option to force use of `MTLEvents` for Vulkan semaphores on NVIDIA and Rosetta2.
+	- `MVKConfiguration` replace booleans `semaphoreUseMTLEvent` and `semaphoreUseMTLFence` with enumerated `semaphoreSupportStyle`.
+- Support config option to automatically use Metal argument buffers when `VK_EXT_descriptor_indexing` 
+  extension is enabled. `MVKConfiguration::useMetalArgumentBuffers` (`MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS`) 
+  is now an enum field. The use of Metal argument buffers is still disabled by default (`MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS_NEVER`).
+- Fix memory leaks when configured for prefilling Metal command buffers.
+- `MVKConfiguration` replace boolean `prefillMetalCommandBuffers` with enumeration.
+- `MVKPipeline`: Add builtins that are read but not written to tessellation pipelines.
+- Fix occassional crash from retention of `MVKSwapchain` for future drawable presentations.
+- Fix crash in `vkCreateSwapchainKHR()` on macOS 10.14 and earlier
+- Fix undefined reference to `vkGetBufferDeviceAddressEXT` when building with `MVK_HIDE_VULKAN_SYMBOLS=1`.
+- Update `Makefile` to forward any build setting declared on the command line to Xcode.
+- Add _**non-functional** Vulkan 1.3_ core function **_stubs_**, to avoid link errors with some external 
+  libraries that assume _Vulkan 1.3_ linkages from the standard _Vulkan_ header files included with **MoltenVK**. 
+- Add `MVK_USE_CEREAL` build setting to avoid use of Cereal external library (for pipeline caching).
+- `MoltenVKShaderConverter` tool automatically maps bindings when converting _GLSL_.
+- Update `VK_MVK_MOLTENVK_SPEC_VERSION` to version `36`.
+- Update to latest SPIRV-Cross:
+  - MSL: Support `OpPtrEqual`, `OpPtrNotEqual`, and `OpPtrDiff`.
+  - MSL: Emit correct address space when casting during `OpStore`.
+  - MSL: Add a mechanism to fix up shader outputs.
+  - MSL: Handle descriptor aliasing of raw buffer descriptors.
+  - MSL: Do not attempt to alias push constants.
+  - MSL: only fix up `gl_FragCoord` if really necessary.
+  - MSL: Expose way to query if a buffer needs array length.
+  - MSL: Report unsupported 64-bit atomics.
+  - Don't rename remapped variables like `gl_LastFragDepthARM`
+
+
+
 MoltenVK 1.1.11
 --------------
 
