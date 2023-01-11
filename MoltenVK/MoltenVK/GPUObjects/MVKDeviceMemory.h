@@ -53,8 +53,9 @@ public:
 	/** Returns whether the memory is accessible from the host. */
     inline bool isMemoryHostAccessible() {
 #if MVK_APPLE_SILICON
-        if (_mtlStorageMode == MTLStorageModeMemoryless)
-            return false;
+        if (@available(macos 11.0, macCatalyst 14.0, ios 10.0, *))
+            if (_mtlStorageMode == MTLStorageModeMemoryless)
+                return false;
 #endif
         return (_mtlStorageMode != MTLStorageModePrivate);
     }
@@ -116,8 +117,11 @@ public:
 	/** Returns the Metal buffer underlying this memory allocation. */
 	inline id<MTLBuffer> getMTLBuffer() { return _mtlBuffer; }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
 	/** Returns the Metal heap underlying this memory allocation. */
-	inline id<MTLHeap> getMTLHeap() { return _mtlHeap; }
+	inline id<MTLHeap> getMTLHeap() { return _mtlHeap; }  // @available(macos 10.13, ios 10.0, *)
+#pragma clang diagnostic pop
 
 	/** Returns the Metal storage mode used by this memory allocation. */
 	inline MTLStorageMode getMTLStorageMode() { return _mtlStorageMode; }
@@ -162,7 +166,10 @@ protected:
     VkDeviceSize _allocationSize = 0;
 	MVKMappedMemoryRange _mappedRange;
 	id<MTLBuffer> _mtlBuffer = nil;
-	id<MTLHeap> _mtlHeap = nil;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
+	id<MTLHeap> _mtlHeap = nil;   // @available(macos 10.13, ios 10.0, *)
+#pragma clang diagnostic pop
 	void* _pMemory = nullptr;
 	void* _pHostMemory = nullptr;
 	VkMemoryPropertyFlags _vkMemPropFlags;

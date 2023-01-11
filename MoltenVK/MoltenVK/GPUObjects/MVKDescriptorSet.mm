@@ -22,6 +22,7 @@
 #include "MVKPipeline.h"
 #include "MVKInstance.h"
 #include "MVKOSExtensions.h"
+#include "MVKLogging.h"
 
 
 #pragma mark -
@@ -263,10 +264,14 @@ const VkDescriptorBindingFlags* MVKDescriptorSetLayout::getBindingFlags(const Vk
 void MVKDescriptorSetLayout::initMTLArgumentEncoder() {
 	if (isUsingDescriptorSetMetalArgumentBuffers() && isUsingMetalArgumentBuffer()) {
 		@autoreleasepool {
-			NSMutableArray<MTLArgumentDescriptor*>* args = [NSMutableArray arrayWithCapacity: _bindings.size()];
-			for (auto& dslBind : _bindings) { dslBind.addMTLArgumentDescriptors(args); }
-			_mtlArgumentEncoder.init(args.count ? [getMTLDevice() newArgumentEncoderWithArguments: args] : nil);
-		}
+            if (@available(macos 10.13, ios 11.0, *)) {
+                NSMutableArray<MTLArgumentDescriptor*>* args = [NSMutableArray arrayWithCapacity: _bindings.size()];
+                for (auto& dslBind : _bindings) { dslBind.addMTLArgumentDescriptors(args); }
+                _mtlArgumentEncoder.init(args.count ? [getMTLDevice() newArgumentEncoderWithArguments: args] : nil);
+            } else {
+             MVKUnavailable(MTLArgumentEncoder);
+           }
+        }
 	}
 }
 

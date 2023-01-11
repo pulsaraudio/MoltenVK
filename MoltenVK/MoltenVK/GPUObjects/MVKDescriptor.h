@@ -168,8 +168,8 @@ protected:
     friend class MVKInlineUniformBlockDescriptor;
 	
 	void initMetalResourceIndexOffsets(const VkDescriptorSetLayoutBinding* pBinding, uint32_t stage);
-	void addMTLArgumentDescriptors(NSMutableArray<MTLArgumentDescriptor*>* args);
-	void addMTLArgumentDescriptor(NSMutableArray<MTLArgumentDescriptor*>* args,
+	API_AVAILABLE(macos(10.13), ios(11.0)) void addMTLArgumentDescriptors(NSMutableArray<MTLArgumentDescriptor*>* args);
+	API_AVAILABLE(macos(10.13), ios(11.0)) void addMTLArgumentDescriptor(NSMutableArray<MTLArgumentDescriptor*>* args,
 								  uint32_t argIndex,
 								  MTLDataType dataType,
 								  MTLArgumentAccess access);

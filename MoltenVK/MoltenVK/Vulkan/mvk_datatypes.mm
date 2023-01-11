@@ -313,7 +313,8 @@ MVK_PUBLIC_SYMBOL MTLSamplerAddressMode mvkMTLSamplerAddressModeFromVkSamplerAdd
 		case VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT:		return MTLSamplerAddressModeMirrorRepeat;
 #if MVK_MACOS || (MVK_IOS && MVK_XCODE_12)
 		case VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE:	return MTLSamplerAddressModeMirrorClampToEdge;
-		case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER:		return MTLSamplerAddressModeClampToBorderColor;
+		case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER:   if (@available(macos 10.12, ios 14.0, *))
+                                                            return MTLSamplerAddressModeClampToBorderColor;
 #endif
 		default:											return MTLSamplerAddressModeClampToZero;
 	}
@@ -391,13 +392,14 @@ MVK_PUBLIC_SYMBOL MTLBlendFactor mvkMTLBlendFactorFromVkBlendFactor(VkBlendFacto
 		case VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA:	return MTLBlendFactorOneMinusBlendAlpha;
 		case VK_BLEND_FACTOR_SRC_ALPHA_SATURATE:		return MTLBlendFactorSourceAlphaSaturated;
 
-        case VK_BLEND_FACTOR_SRC1_COLOR:				return MTLBlendFactorSource1Color;
-		case VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR:		return MTLBlendFactorOneMinusSource1Color;
-		case VK_BLEND_FACTOR_SRC1_ALPHA:				return MTLBlendFactorSource1Alpha;
-		case VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA:		return MTLBlendFactorOneMinusSource1Alpha;
+        case VK_BLEND_FACTOR_SRC1_COLOR:		    if (@available(macos 10.12, ios 10.11, *)) return MTLBlendFactorSource1Color; break;
+		case VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR:	if (@available(macos 10.12, ios 10.11, *)) return MTLBlendFactorOneMinusSource1Color; break;
+		case VK_BLEND_FACTOR_SRC1_ALPHA:			if (@available(macos 10.12, ios 10.11, *)) return MTLBlendFactorSource1Alpha; break;
+		case VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA:	if (@available(macos 10.12, ios 10.11, *)) return MTLBlendFactorOneMinusSource1Alpha; break;
 
-        default:										return MTLBlendFactorZero;
+        default:;
 	}
+    return MTLBlendFactorZero;
 }
 
 MVK_PUBLIC_SYMBOL MTLVertexStepFunction mvkMTLVertexStepFunctionFromVkVertexInputRate(VkVertexInputRate vkVtxStep) {
@@ -529,7 +531,11 @@ MVK_PUBLIC_SYMBOL MTLStoreAction mvkMTLStoreActionFromVkAttachmentStoreOp(VkAtta
 // If we need to resolve, but the format doesn't support it, we must store the attachment so we can run a post-renderpass compute shader to perform the resolve.
 MTLStoreAction mvkMTLStoreActionFromVkAttachmentStoreOpInObj(VkAttachmentStoreOp vkStoreOp, bool hasResolveAttachment, bool canResolveFormat, MVKBaseObject* mvkObj) {
 	switch (vkStoreOp) {
-		case VK_ATTACHMENT_STORE_OP_STORE:		return hasResolveAttachment && canResolveFormat ? MTLStoreActionStoreAndMultisampleResolve : MTLStoreActionStore;
+		case VK_ATTACHMENT_STORE_OP_STORE:
+            if (@available(macos 10.12, ios 10.0, *))
+                return hasResolveAttachment && canResolveFormat ? MTLStoreActionStoreAndMultisampleResolve : MTLStoreActionStore;
+            else
+                return MTLStoreActionStore;
 		case VK_ATTACHMENT_STORE_OP_DONT_CARE:	return hasResolveAttachment ? (canResolveFormat ? MTLStoreActionMultisampleResolve : MTLStoreActionStore) : MTLStoreActionDontCare;
 
 		default:
@@ -767,7 +773,8 @@ MVK_PUBLIC_SYMBOL MTLStorageMode mvkMTLStorageModeFromVkMemoryPropertyFlags(VkMe
 	if ( !mvkAreAllFlagsEnabled(vkFlags, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) ) {
 #if MVK_APPLE_SILICON
 		if (mvkAreAllFlagsEnabled(vkFlags, VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)) {
-			return MTLStorageModeMemoryless;
+            if (@available(macos 11.0, macCatalyst 14.0, ios 10.0, *))
+                return MTLStorageModeMemoryless;
 		}
 #endif
 		return MTLStorageModePrivate;

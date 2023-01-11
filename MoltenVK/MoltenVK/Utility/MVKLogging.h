@@ -202,6 +202,8 @@ do {											\
 	assert(!isErr || MVK_BLOCK_ASSERTIONS);		\
 } while(0)
 
+#define MVKUnavailable(object) MVKAssert(false, "%s is not supported on this version of the OS", #object)
+
 // Use this macro to open a break-point programmatically.
 #ifndef MVK_DEBUGGER
 #	define MVK_DEBUGGER() { kill( getpid(), SIGINT ) ; }

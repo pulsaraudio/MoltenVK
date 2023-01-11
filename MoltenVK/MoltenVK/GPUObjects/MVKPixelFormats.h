@@ -34,8 +34,11 @@ class MVKPhysicalDevice;
 static const uint32_t _vkFormatCount = 256;
 static const uint32_t _vkFormatCoreCount = VK_FORMAT_ASTC_12x12_SRGB_BLOCK + 1;
 static const uint32_t _mtlPixelFormatCount = 256;
-static const uint32_t _mtlPixelFormatCoreCount = MTLPixelFormatX32_Stencil8 + 2;     // The actual last enum value is not available on iOS
-static const uint32_t _mtlVertexFormatCount = MTLVertexFormatHalf + 1;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
+static const uint32_t _mtlPixelFormatCoreCount = MTLPixelFormatX32_Stencil8 + 2;    // The actual last enum value is not available on iOS
+static const uint32_t _mtlVertexFormatCount = MTLVertexFormatHalf + 1;  // macos(10.13), ios(11.0)
+#pragma clang diagnostic pop
 
 
 #pragma mark -
@@ -405,8 +408,11 @@ protected:
 									   MTLFeatureSet mtlFeatSet,
 									   MTLPixelFormat mtlPixFmt,
 									   MVKMTLFmtCaps mtlFmtCaps);
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
 	void addMTLPixelFormatCapabilities(id<MTLDevice> mtlDevice,
-									   MTLGPUFamily gpuFamily,
+									   MTLGPUFamily gpuFamily,          // macos(10.15), ios(13.0)
 									   MVKOSVersion minOSVer,
 									   MTLPixelFormat mtlPixFmt,
 									   MVKMTLFmtCaps mtlFmtCaps);
@@ -418,10 +424,11 @@ protected:
 										MTLVertexFormat mtlVtxFmt,
 										MVKMTLFmtCaps mtlFmtCaps);
 	void addMTLVertexFormatCapabilities(id<MTLDevice> mtlDevice,
-										MTLGPUFamily gpuFamily,
+										MTLGPUFamily gpuFamily,         // macos(10.15), ios(13.0)
 										MVKOSVersion minOSVer,
 										MTLVertexFormat mtlVtxFmt,
 										MVKMTLFmtCaps mtlFmtCaps);
+#pragma clang diagnostic pop
 
 	MVKPhysicalDevice* _physicalDevice;
 	MVKVkFormatDesc _vkFormatDescriptions[_vkFormatCount];

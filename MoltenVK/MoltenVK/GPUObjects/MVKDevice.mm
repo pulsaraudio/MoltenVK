@@ -3101,24 +3101,28 @@ void MVKPhysicalDevice::initExtensions() {
 void MVKPhysicalDevice::initCounterSets() {
 	_timestampMTLCounterSet = nil;
 	@autoreleasepool {
-		if (_metalFeatures.counterSamplingPoints) {
-			NSArray<id<MTLCounterSet>>* counterSets = _mtlDevice.counterSets;
+		if (_metalFeatures.counterSamplingPoints) { // should have been set to false if MTLCounterSet unavailable
+            if (@available(macos 10.15, ios 14.0, *)) {
+                NSArray<id<MTLCounterSet>>* counterSets = _mtlDevice.counterSets;
 
-			if (needsCounterSetRetained()) { [counterSets retain]; }
+                if (needsCounterSetRetained()) { [counterSets retain]; }
 
-			for (id<MTLCounterSet> cs in counterSets){
-				NSString* csName = cs.name;
-				if ( [csName caseInsensitiveCompare: MTLCommonCounterSetTimestamp] == NSOrderedSame) {
-					NSArray<id<MTLCounter>>* countersInSet = cs.counters;
-					for(id<MTLCounter> ctr in countersInSet) {
-						if ( [ctr.name caseInsensitiveCompare: MTLCommonCounterTimestamp] == NSOrderedSame) {
-							_timestampMTLCounterSet = [cs retain];		// retained
-							break;
-						}
-					}
-					break;
-				}
-			}
+                for (id<MTLCounterSet> cs in counterSets){
+                    NSString* csName = cs.name;
+                    if ( [csName caseInsensitiveCompare: MTLCommonCounterSetTimestamp] == NSOrderedSame) {
+                        NSArray<id<MTLCounter>>* countersInSet = cs.counters;
+                        for(id<MTLCounter> ctr in countersInSet) {
+                            if ( [ctr.name caseInsensitiveCompare: MTLCommonCounterTimestamp] == NSOrderedSame) {
+                                _timestampMTLCounterSet = [cs retain];		// retained
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            } else {
+                MVKUnavailable(MTLCounterSet);
+            }
 		}
 	}
 }

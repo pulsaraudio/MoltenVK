@@ -196,18 +196,24 @@ bool MVKDeviceMemory::ensureMTLHeap() {
 	if ( !(_mtlStorageMode == MTLStorageModePrivate ||
 		   _mtlStorageMode == MTLStorageModeShared) ) { return true; }
 #endif
-
-	MTLHeapDescriptor* heapDesc = [MTLHeapDescriptor new];
-	heapDesc.type = MTLHeapTypePlacement;
-	heapDesc.storageMode = _mtlStorageMode;
-	heapDesc.cpuCacheMode = _mtlCPUCacheMode;
-	// For now, use tracked resources. Later, we should probably default
-	// to untracked, since Vulkan uses explicit barriers anyway.
-	heapDesc.hazardTrackingMode = MTLHazardTrackingModeTracked;
-	heapDesc.size = _allocationSize;
-	_mtlHeap = [_device->getMTLDevice() newHeapWithDescriptor: heapDesc];	// retained
-	[heapDesc release];
-	if (!_mtlHeap) { return false; }
+    // Availability is guarded for newHeapWithDescriptor, MTLHeapTypePlacement, MTLHazardTrackingModeTracked
+    // This allow to compile without warnings. However, we should never skip there
+    // if _pMetalFeatures->placementHeaps is computed correctly
+    if (@available(macos 10.15, ios 13.0, *)) {
+        MTLHeapDescriptor* heapDesc = [MTLHeapDescriptor new];
+        heapDesc.type = MTLHeapTypePlacement;
+        heapDesc.storageMode = _mtlStorageMode;
+        heapDesc.cpuCacheMode = _mtlCPUCacheMode;
+        // For now, use tracked resources. Later, we should probably default
+        // to untracked, since Vulkan uses explicit barriers anyway.
+        heapDesc.hazardTrackingMode = MTLHazardTrackingModeTracked;
+        heapDesc.size = _allocationSize;
+        _mtlHeap = [_device->getMTLDevice() newHeapWithDescriptor: heapDesc];	// retained
+        [heapDesc release];
+        if (!_mtlHeap) { return false; }
+    } else {
+        MVKUnavailable(MTLHeap);
+    }
 
 	propagateDebugName();
 
@@ -226,12 +232,16 @@ bool MVKDeviceMemory::ensureMTLBuffer() {
 
 	// If host memory was already allocated, it is copied into the new MTLBuffer, and then released.
 	if (_mtlHeap) {
-		_mtlBuffer = [_mtlHeap newBufferWithLength: memLen options: getMTLResourceOptions() offset: 0];	// retained
-		if (_pHostMemory) {
-			memcpy(_mtlBuffer.contents, _pHostMemory, memLen);
-			freeHostMemory();
-		}
-		[_mtlBuffer makeAliasable];
+        if (@available(macos 10.15, ios 13.0, *)) {
+            _mtlBuffer = [_mtlHeap newBufferWithLength: memLen options: getMTLResourceOptions() offset: 0];	// retained
+            if (_pHostMemory) {
+                memcpy(_mtlBuffer.contents, _pHostMemory, memLen);
+                freeHostMemory();
+            }
+            [_mtlBuffer makeAliasable];
+        } else {
+            MVKUnavailable(MTLHeap);
+        }
 	} else if (_pHostMemory) {
 		_mtlBuffer = [getMTLDevice() newBufferWithBytes: _pHostMemory length: memLen options: getMTLResourceOptions()];     // retained
 		freeHostMemory();

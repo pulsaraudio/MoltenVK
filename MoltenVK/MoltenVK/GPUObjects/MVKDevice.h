@@ -432,7 +432,10 @@ protected:
 	VkPhysicalDeviceMemoryProperties _memoryProperties;
 	MVKSmallVector<MVKQueueFamily*, kMVKQueueFamilyCount> _queueFamilies;
 	MVKPixelFormats _pixelFormats;
-	id<MTLCounterSet> _timestampMTLCounterSet;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
+	id<MTLCounterSet> _timestampMTLCounterSet; // @available(macos 10.15, ios 14.0, *)
+#pragma clang diagnostic pop
 	MVKSemaphoreStyle _vkSemaphoreStyle;
 	uint32_t _allMemoryTypes;
 	uint32_t _hostVisibleMemoryTypes;
@@ -743,7 +746,10 @@ public:
     uint32_t expandVisibilityResultMTLBuffer(uint32_t queryCount);
 
 	/** Returns the GPU sample counter used for timestamps. */
-	id<MTLCounterSet> getTimestampMTLCounterSet() { return _physicalDevice->_timestampMTLCounterSet; }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
+	id<MTLCounterSet> getTimestampMTLCounterSet() { return _physicalDevice->_timestampMTLCounterSet; } // @available(macos 10.15, ios 14.0, *)
+#pragma clang diagnostic pop
 
     /** Returns the memory type index corresponding to the specified Metal memory storage mode. */
     uint32_t getVulkanMemoryTypeIndex(MTLStorageMode mtlStorageMode);

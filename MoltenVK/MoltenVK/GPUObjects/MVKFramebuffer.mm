@@ -18,6 +18,7 @@
 
 #include "MVKFramebuffer.h"
 #include "MVKRenderPass.h"
+#include "MVKLogging.h"
 
 using namespace std;
 
@@ -38,8 +39,13 @@ id<MTLTexture> MVKFramebuffer::getDummyAttachmentMTLTexture(MVKRenderSubpass* su
 	if (subpass->isMultiview()) {
 #if MVK_MACOS_OR_IOS
 		if (sampleCount > 1 && getDevice()->_pMetalFeatures->multisampleLayeredRendering) {
-			mtlTexDesc.textureType = MTLTextureType2DMultisampleArray;
-			mtlTexDesc.sampleCount = sampleCount;
+            if (@available(macos 10.14, ios 14.0, *)) {
+                mtlTexDesc.textureType = MTLTextureType2DMultisampleArray;
+                mtlTexDesc.sampleCount = sampleCount;
+            } else {
+                MVKUnavailable(MTLTextureType2DMultisampleArray); // should have been covered by multisampleLayeredRendering == false
+                mtlTexDesc.textureType = MTLTextureType2DArray;
+            }
 		} else {
 			mtlTexDesc.textureType = MTLTextureType2DArray;
 		}
@@ -50,8 +56,13 @@ id<MTLTexture> MVKFramebuffer::getDummyAttachmentMTLTexture(MVKRenderSubpass* su
 	} else if (fbLayerCount > 1) {
 #if MVK_MACOS
 		if (sampleCount > 1 && getDevice()->_pMetalFeatures->multisampleLayeredRendering) {
-			mtlTexDesc.textureType = MTLTextureType2DMultisampleArray;
-			mtlTexDesc.sampleCount = sampleCount;
+            if (@available(macos 10.14, ios 14.0, *)) {
+                mtlTexDesc.textureType = MTLTextureType2DMultisampleArray;
+                mtlTexDesc.sampleCount = sampleCount;
+            } else {
+                MVKUnavailable(MTLTextureType2DMultisampleArray); // should have been covered by multisampleLayeredRendering == false
+                mtlTexDesc.textureType = MTLTextureType2DArray;
+            }
 		} else {
 			mtlTexDesc.textureType = MTLTextureType2DArray;
 		}
