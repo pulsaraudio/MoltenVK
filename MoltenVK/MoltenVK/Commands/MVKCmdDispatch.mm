@@ -48,7 +48,7 @@ void MVKCmdDispatch::encode(MVKCommandEncoder* cmdEncoder) {
 	id<MTLComputeCommandEncoder> mtlEncoder = cmdEncoder->getMTLComputeEncoder(kMVKCommandUseDispatch);
 	auto* pipeline = (MVKComputePipeline*)cmdEncoder->_computePipelineState.getPipeline();
 	if (pipeline->allowsDispatchBase()) {
-		if ([mtlEncoder respondsToSelector: @selector(setStageInRegion:)]) {
+		if (@available(macos 10.12, ios 10.0, *)) {
 			// We'll use the stage-input region to pass the base along to the shader.
 			// Hopefully Metal won't complain that we didn't set up a stage-input descriptor.
 			[mtlEncoder setStageInRegion: mtlThreadgroupCount];

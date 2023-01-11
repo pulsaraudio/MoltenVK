@@ -703,7 +703,7 @@ void MVKCmdDrawIndirect::encode(MVKCommandEncoder* cmdEncoder) {
                     }
 					// We must assume we can read up to the maximum number of vertices.
 					[mtlTessCtlEncoder setStageInRegion: MTLRegionMake2D(0, 0, vertexCount, vertexCount)];
-					if ([mtlTessCtlEncoder respondsToSelector: @selector(setStageInRegionWithIndirectBuffer:indirectBufferOffset:)]) {
+					if (@available(macos 10.14, ios 12.0, *)) {
 						[mtlTessCtlEncoder setStageInRegionWithIndirectBuffer: mtlIndBuff
 						                                 indirectBufferOffset: mtlIndBuffOfst];
 						mtlIndBuffOfst += sizeof(MTLStageInRegionIndirectArguments);
@@ -1038,7 +1038,7 @@ void MVKCmdDrawIndexedIndirect::encode(MVKCommandEncoder* cmdEncoder) {
 										  offset: vtxIndexBuff->_offset
 										 atIndex: pipeline->getIndirectParamsIndex().stages[kMVKShaderStageVertex]];
 					[mtlTessCtlEncoder setStageInRegion: MTLRegionMake2D(0, 0, vertexCount, vertexCount)];
-					if ([mtlTessCtlEncoder respondsToSelector: @selector(setStageInRegionWithIndirectBuffer:indirectBufferOffset:)]) {
+					if (@available(macos 10.14, ios 12.0, *)) {
 						[mtlTessCtlEncoder setStageInRegionWithIndirectBuffer: mtlIndBuff
 						                                 indirectBufferOffset: mtlTempIndBuffOfst];
 						mtlTempIndBuffOfst += sizeof(MTLStageInRegionIndirectArguments);

@@ -196,18 +196,22 @@ void MVKCmdCopyImage<N>::encode(MVKCommandEncoder* cmdEncoder, MVKCommandUse com
             VkExtent3D dstExtent = _dstImage->getExtent3D(dstPlaneIndex, dstLevel);
             // If the extent completely covers both images, I can copy all layers at once.
             // This will obviously not apply to copies between a 3D and 2D image.
-            if (mvkVkExtent3DsAreEqual(srcExtent, vkIC.extent) && mvkVkExtent3DsAreEqual(dstExtent, vkIC.extent) &&
-                [mtlBlitEnc respondsToSelector: @selector(copyFromTexture:sourceSlice:sourceLevel:toTexture:destinationSlice:destinationLevel:sliceCount:levelCount:)]) {
-                assert((_srcImage->getMTLTextureType() == MTLTextureType3D) == (_dstImage->getMTLTextureType() == MTLTextureType3D));
-                [mtlBlitEnc copyFromTexture: srcMTLTex
-                                sourceSlice: srcBaseLayer
-                                sourceLevel: srcLevel
-                                  toTexture: dstMTLTex
-                           destinationSlice: dstBaseLayer
-                           destinationLevel: dstLevel
-                                 sliceCount: vkIC.srcSubresource.layerCount
-                                 levelCount: 1];
-            } else {
+            bool copyFromTextureDone {false};
+            if (mvkVkExtent3DsAreEqual(srcExtent, vkIC.extent) && mvkVkExtent3DsAreEqual(dstExtent, vkIC.extent)) {
+                if (@available(macos 10.15, ios 13.0, *)) {
+                    assert((_srcImage->getMTLTextureType() == MTLTextureType3D) == (_dstImage->getMTLTextureType() == MTLTextureType3D));
+                    copyFromTextureDone = true;
+                    [mtlBlitEnc copyFromTexture: srcMTLTex
+                                    sourceSlice: srcBaseLayer
+                                    sourceLevel: srcLevel
+                                      toTexture: dstMTLTex
+                               destinationSlice: dstBaseLayer
+                               destinationLevel: dstLevel
+                                     sliceCount: vkIC.srcSubresource.layerCount
+                                     levelCount: 1];
+                }
+            }
+            if (!copyFromTextureDone) {
                 MTLOrigin srcOrigin = mvkMTLOriginFromVkOffset3D(vkIC.srcOffset);
                 MTLSize srcSize;
                 uint32_t layCnt;
@@ -1419,13 +1423,10 @@ void MVKCmdClearAttachments<N>::encode(MVKCommandEncoder* cmdEncoder) {
     if (@available(macos 10.15, ios 11.0, tvos 14.5, macCatalyst 13.0, *)) {
 	// I need to know if the 'renderTargetWidth' and 'renderTargetHeight' properties
 	// actually do something, but [MTLRenderPassDescriptor instancesRespondToSelector: @selector(renderTargetWidth)]
-	// returns NO even on systems that do support it. So we have to check an actual instance.
-        MTLRenderPassDescriptor* tempRPDesc = [MTLRenderPassDescriptor new];	// temp retain
-        if ([tempRPDesc respondsToSelector: @selector(renderTargetWidth)]) {
-            VkRect2D renderArea = cmdEncoder->clipToRenderArea({{0, 0}, fbExtent});
-            fbExtent = {renderArea.offset.x + renderArea.extent.width, renderArea.offset.y + renderArea.extent.height};
-        }
-        [tempRPDesc release];													// temp release
+	// returns NO even on systems that do support it. It is therefore easier to
+    // use @available check for these properties
+        VkRect2D renderArea = cmdEncoder->clipToRenderArea({{0, 0}, fbExtent});
+        fbExtent = {renderArea.offset.x + renderArea.extent.width, renderArea.offset.y + renderArea.extent.height};
     }
 #endif
 	populateVertices(cmdEncoder, vertices, fbExtent.width, fbExtent.height);

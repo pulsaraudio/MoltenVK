@@ -973,7 +973,7 @@ void MVKGraphicsResourcesCommandEncoderState::encodeArgumentBufferResourceUsage(
 			[mtlCompEnc useResource: mtlResource usage: mtlUsage];
 		} else {
 			auto* mtlRendEnc = _cmdEncoder->_mtlRenderEncoder;
-			if ([mtlRendEnc respondsToSelector: @selector(useResource:usage:stages:)]) {
+			if (@available(macos 10.15, ios 13.0, *)) {
 				[mtlRendEnc useResource: mtlResource usage: mtlUsage stages: mtlStages];
 			} else {
 				[mtlRendEnc useResource: mtlResource usage: mtlUsage];

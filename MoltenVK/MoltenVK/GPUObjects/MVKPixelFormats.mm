@@ -1382,12 +1382,13 @@ void MVKPixelFormats::addMTLPixelFormatCapabilities(id<MTLDevice> mtlDevice,
 													MVKOSVersion minOSVer,
 													MTLPixelFormat mtlPixFmt,
 													MVKMTLFmtCaps mtlFmtCaps) {
-	if (mvkOSVersionIsAtLeast(minOSVer) &&
-		[mtlDevice respondsToSelector: @selector(supportsFamily:)] &&
-		[mtlDevice supportsFamily: gpuFamily]) {
+    if (@available(macos 10.15, ios 13.0, *)) {
+        if (mvkOSVersionIsAtLeast(minOSVer) &&
+            [mtlDevice supportsFamily: gpuFamily]) {
 
-		mvkEnableFlags(getMTLPixelFormatDesc(mtlPixFmt).mtlFmtCaps, mtlFmtCaps);
-	}
+            mvkEnableFlags(getMTLPixelFormatDesc(mtlPixFmt).mtlFmtCaps, mtlFmtCaps);
+        }
+    }
 }
 
 
@@ -1417,12 +1418,13 @@ void MVKPixelFormats::addMTLVertexFormatCapabilities(id<MTLDevice> mtlDevice,
 													 MVKOSVersion minOSVer,
 													 MTLVertexFormat mtlVtxFmt,
 													 MVKMTLFmtCaps mtlFmtCaps) {
-	if (mvkOSVersionIsAtLeast(minOSVer) &&
-		[mtlDevice respondsToSelector: @selector(supportsFamily:)] &&
-		[mtlDevice supportsFamily: gpuFamily]) {
+    if (@available(macos 10.15, ios 13.0, *)) {
+        if (mvkOSVersionIsAtLeast(minOSVer) &&
+            [mtlDevice supportsFamily: gpuFamily]) {
 
-		mvkEnableFlags(getMTLVertexFormatDesc(mtlVtxFmt).mtlFmtCaps, mtlFmtCaps);
-	}
+            mvkEnableFlags(getMTLVertexFormatDesc(mtlVtxFmt).mtlFmtCaps, mtlFmtCaps);
+        }
+    }
 }
 
 // If supporting a physical device, retrieve the MTLDevice from it,
@@ -1492,37 +1494,37 @@ void MVKPixelFormats::modifyMTLFormatCapabilities(id<MTLDevice> mtlDevice) {
 
 	addFeatSetMTLPixFmtCaps( macOS_GPUFamily1_v3, BGR10A2Unorm, RFCMRB );
 
-#if MVK_MACOS_APPLE_SILICON
-	if ([mtlDevice respondsToSelector: @selector(supports32BitMSAA)] &&
-		!mtlDevice.supports32BitMSAA) {
+#if MVK_MACOS_APPLE_SILICON // Why?
+    if (@available(macos 10.11, ios 14.0, *)) { // FIXME: Should we disableMTLPixFmtCaps when false?
+        if (!mtlDevice.supports32BitMSAA) {
 
-		disableMTLPixFmtCaps( R32Uint, MSAA );
-		disableMTLPixFmtCaps( R32Uint, Resolve );
-		disableMTLPixFmtCaps( R32Sint, MSAA );
-		disableMTLPixFmtCaps( R32Sint, Resolve );
-		disableMTLPixFmtCaps( R32Float, MSAA );
-		disableMTLPixFmtCaps( R32Float, Resolve );
-		disableMTLPixFmtCaps( RG32Uint, MSAA );
-		disableMTLPixFmtCaps( RG32Uint, Resolve );
-		disableMTLPixFmtCaps( RG32Sint, MSAA );
-		disableMTLPixFmtCaps( RG32Sint, Resolve );
-		disableMTLPixFmtCaps( RG32Float, MSAA );
-		disableMTLPixFmtCaps( RG32Float, Resolve );
-		disableMTLPixFmtCaps( RGBA32Uint, MSAA );
-		disableMTLPixFmtCaps( RGBA32Uint, Resolve );
-		disableMTLPixFmtCaps( RGBA32Sint, MSAA );
-		disableMTLPixFmtCaps( RGBA32Sint, Resolve );
-		disableMTLPixFmtCaps( RGBA32Float, MSAA );
-		disableMTLPixFmtCaps( RGBA32Float, Resolve );
-	}
+            disableMTLPixFmtCaps( R32Uint, MSAA );
+            disableMTLPixFmtCaps( R32Uint, Resolve );
+            disableMTLPixFmtCaps( R32Sint, MSAA );
+            disableMTLPixFmtCaps( R32Sint, Resolve );
+            disableMTLPixFmtCaps( R32Float, MSAA );
+            disableMTLPixFmtCaps( R32Float, Resolve );
+            disableMTLPixFmtCaps( RG32Uint, MSAA );
+            disableMTLPixFmtCaps( RG32Uint, Resolve );
+            disableMTLPixFmtCaps( RG32Sint, MSAA );
+            disableMTLPixFmtCaps( RG32Sint, Resolve );
+            disableMTLPixFmtCaps( RG32Float, MSAA );
+            disableMTLPixFmtCaps( RG32Float, Resolve );
+            disableMTLPixFmtCaps( RGBA32Uint, MSAA );
+            disableMTLPixFmtCaps( RGBA32Uint, Resolve );
+            disableMTLPixFmtCaps( RGBA32Sint, MSAA );
+            disableMTLPixFmtCaps( RGBA32Sint, Resolve );
+            disableMTLPixFmtCaps( RGBA32Float, MSAA );
+            disableMTLPixFmtCaps( RGBA32Float, Resolve );
+        }
 
-	if ([mtlDevice respondsToSelector: @selector(supports32BitFloatFiltering)] &&
-		!mtlDevice.supports32BitFloatFiltering) {
+        if (!mtlDevice.supports32BitFloatFiltering) {
 
-		disableMTLPixFmtCaps( R32Float, Filter );
-		disableMTLPixFmtCaps( RG32Float, Filter );
-		disableMTLPixFmtCaps( RGBA32Float, Filter );
-	}
+            disableMTLPixFmtCaps( R32Float, Filter );
+            disableMTLPixFmtCaps( RG32Float, Filter );
+            disableMTLPixFmtCaps( RGBA32Float, Filter );
+        }
+    }
 
 	if ( !mvkSupportsBCTextureCompression(mtlDevice) ) {
 		disableAllMTLPixFmtCaps( BC1_RGBA );
@@ -1731,8 +1733,11 @@ void MVKPixelFormats::modifyMTLFormatCapabilities(id<MTLDevice> mtlDevice) {
 
 	// Disable for tvOS simulator last.
 #if MVK_OS_SIMULATOR
-	if (!([mtlDevice respondsToSelector: @selector(supportsFamily:)] &&
-		  [mtlDevice supportsFamily: MTLGPUFamilyApple5])) {
+    bool supportsApple5 {false};
+    if (@available(macos 10.15, ios 13.0, *)) {
+        supportsApple5 = [mtlDevice supportsFamily: MTLGPUFamilyApple5];
+    }
+	if (!supportsApple5) {
 		disableAllMTLPixFmtCaps(R8Unorm_sRGB);
 		disableAllMTLPixFmtCaps(RG8Unorm_sRGB);
 		disableAllMTLPixFmtCaps(B5G6R5Unorm);
@@ -1890,8 +1895,11 @@ void MVKPixelFormats::modifyMTLFormatCapabilities(id<MTLDevice> mtlDevice) {
 
 // Disable for iOS simulator last.
 #if MVK_OS_SIMULATOR
-	if (!([mtlDevice respondsToSelector: @selector(supportsFamily:)] &&
-		  [mtlDevice supportsFamily: MTLGPUFamilyApple5])) {
+    bool supportsApple5 {false};
+    if (@available(macos 10.15, ios 13.0, *)) {
+        supportsApple5 = [mtlDevice supportsFamily: MTLGPUFamilyApple5];
+    }
+	if (!supportsApple5) {
 		disableAllMTLPixFmtCaps(R8Unorm_sRGB);
 		disableAllMTLPixFmtCaps(RG8Unorm_sRGB);
 		disableAllMTLPixFmtCaps(B5G6R5Unorm);

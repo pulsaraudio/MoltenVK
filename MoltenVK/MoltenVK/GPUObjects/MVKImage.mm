@@ -1373,7 +1373,7 @@ void MVKPresentableSwapchainImage::presentCAMetalDrawable(id<MTLCommandBuffer> m
 void MVKPresentableSwapchainImage::addPresentedHandler(id<CAMetalDrawable> mtlDrawable,
 													   MVKPresentTimingInfo presentTimingInfo) {
 #if !MVK_OS_SIMULATOR
-	if ([mtlDrawable respondsToSelector: @selector(addPresentedHandler:)]) {
+	if (@available(macos 10.15.4, macCatalyst 13.4, ios 10.3, *)) {
 		retain();	// Ensure this image is not destroyed while awaiting presentation
 		[mtlDrawable addPresentedHandler: ^(id<MTLDrawable> drawable) {
 			// Since we're in a callback, it's possible that the swapchain has been released by now.

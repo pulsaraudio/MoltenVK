@@ -413,7 +413,7 @@ VkResult MVKSwapchain::getRefreshCycleDuration(VkRefreshCycleDurationGOOGLE *pRe
 #if MVK_IOS_OR_TVOS || MVK_MACCAT
 	NSInteger framesPerSecond = 60;
 	UIScreen* screen = _mtlLayer.screenMVK;
-	if ([screen respondsToSelector: @selector(maximumFramesPerSecond)]) {
+	if ([screen respondsToSelector: @selector(maximumFramesPerSecond)]) { // FIXME: Doc is unclear about ios availability
 		framesPerSecond = screen.maximumFramesPerSecond;
 	}
 #endif
@@ -424,8 +424,11 @@ VkResult MVKSwapchain::getRefreshCycleDuration(VkRefreshCycleDurationGOOGLE *pRe
 	double framesPerSecond = CGDisplayModeGetRefreshRate(mode);
 	CGDisplayModeRelease(mode);
 #if MVK_XCODE_13
-	if (framesPerSecond == 0 && [screen respondsToSelector: @selector(maximumFramesPerSecond)])
-     	framesPerSecond = [screen maximumFramesPerSecond];
+	if (framesPerSecond == 0) {
+        if (@available(macos 10.13, *)) {
+            framesPerSecond = [screen maximumFramesPerSecond];
+        }
+    }
 #endif
 
 	// Builtin panels, e.g., on MacBook, report a zero refresh rate.

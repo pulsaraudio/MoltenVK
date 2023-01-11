@@ -387,7 +387,11 @@ void MVKPhysicalDevice::getFeatures(VkPhysicalDeviceFeatures2* features) {
 			}
 			case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT: {
 				auto* texelBuffAlignFeatures = (VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT*)next;
-				texelBuffAlignFeatures->texelBufferAlignment = _metalFeatures.texelBuffers && [_mtlDevice respondsToSelector: @selector(minimumLinearTextureAlignmentForPixelFormat:)];
+                if (@available(macos 10.13, ios 11.0, *)) {
+                    texelBuffAlignFeatures->texelBufferAlignment = _metalFeatures.texelBuffers;
+                } else {
+                    texelBuffAlignFeatures->texelBufferAlignment = false;
+                }
 				break;
 			}
 			case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT: {
@@ -1808,35 +1812,33 @@ void MVKPhysicalDevice::initMetalFeatures() {
 
 #endif
 
-	if ( [_mtlDevice respondsToSelector: @selector(areProgrammableSamplePositionsSupported)] ) {
+	if (@available(macos 10.13, ios 11.0, *)) {
 		_metalFeatures.programmableSamplePositions = _mtlDevice.areProgrammableSamplePositionsSupported;
-	}
-
-    if ( [_mtlDevice respondsToSelector: @selector(areRasterOrderGroupsSupported)] ) {
         _metalFeatures.rasterOrderGroups = _mtlDevice.areRasterOrderGroupsSupported;
     }
 #if MVK_XCODE_12
-	if ( [_mtlDevice respondsToSelector: @selector(supportsPullModelInterpolation)] ) {
+	if (@available(macos 10.11, ios 14.0, *)) {
 		_metalFeatures.pullModelInterpolation = _mtlDevice.supportsPullModelInterpolation;
 	}
 #endif
 
 #if (MVK_MACOS && !MVK_MACCAT) || (MVK_MACCAT && MVK_XCODE_14) || (MVK_IOS && MVK_XCODE_12)
-	if ( [_mtlDevice respondsToSelector: @selector(supportsShaderBarycentricCoordinates)] ) {
+	if (@available(macos 10.15, ios 14.0, *)) {
 		_metalFeatures.shaderBarycentricCoordinates = _mtlDevice.supportsShaderBarycentricCoordinates;
 	}
 #endif
 
-    if ( [_mtlDevice respondsToSelector: @selector(maxBufferLength)] ) {
+	if (@available(macos 10.14, ios 12.0, *)) {
         _metalFeatures.maxMTLBufferSize = _mtlDevice.maxBufferLength;
     }
 
-    for (uint32_t sc = VK_SAMPLE_COUNT_1_BIT; sc <= VK_SAMPLE_COUNT_64_BIT; sc <<= 1) {
-        if ([_mtlDevice supportsTextureSampleCount: mvkSampleCountFromVkSampleCountFlagBits((VkSampleCountFlagBits)sc)]) {
-            _metalFeatures.supportedSampleCounts |= sc;
+	if (@available(macos 10.11, ios 9.0, *)) {
+        for (uint32_t sc = VK_SAMPLE_COUNT_1_BIT; sc <= VK_SAMPLE_COUNT_64_BIT; sc <<= 1) {
+            if ([_mtlDevice supportsTextureSampleCount: mvkSampleCountFromVkSampleCountFlagBits((VkSampleCountFlagBits)sc)]) {
+                _metalFeatures.supportedSampleCounts |= sc;
+            }
         }
     }
-
     _metalFeatures.minSubgroupSize = _metalFeatures.maxSubgroupSize = 1;
 #if MVK_MACOS
     if (_metalFeatures.simdPermute) {
@@ -1937,7 +1939,7 @@ void MVKPhysicalDevice::initMetalFeatures() {
 	// Currently, if we don't support descriptor set argument buffers, we can't support argument buffers.
 	_metalFeatures.argumentBuffers = _metalFeatures.descriptorSetArgumentBuffers;
 
-	if ([_mtlDevice respondsToSelector: @selector(argumentBuffersSupport)]) {
+	if (@available(macos 10.13, ios 11.0, *)) {
 		_metalFeatures.argumentBuffersTier = _mtlDevice.argumentBuffersSupport;
 	}
 
@@ -2260,7 +2262,7 @@ void MVKPhysicalDevice::initLimits() {
     _properties.limits.bufferImageGranularity = _metalFeatures.mtlBufferAlignment;
     _properties.limits.nonCoherentAtomSize = _metalFeatures.mtlBufferAlignment;
 
-    if ([_mtlDevice respondsToSelector: @selector(minimumLinearTextureAlignmentForPixelFormat:)]) {
+    if (@available(macos 10.13, ios 11.0, *)) { // for minimumLinearTextureAlignmentForPixelFormat
         // Figure out the greatest alignment required by all supported formats, and whether
 		// or not they only require alignment to a single texel. We'll use this information
 		// to fill out the VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT struct.
@@ -2271,7 +2273,7 @@ void MVKPhysicalDevice::initLimits() {
 			if ( !mtlFmt ) { return false; }	// If format is invalid, avoid validation errors on MTLDevice format alignment calls
 
             NSUInteger alignment;
-            if ([_mtlDevice respondsToSelector: @selector(minimumTextureBufferAlignmentForPixelFormat:)]) {
+            if (@available(macos 10.14, ios 12.0, *)) {
                 alignment = [_mtlDevice minimumTextureBufferAlignmentForPixelFormat: mtlFmt];
             } else {
                 alignment = [_mtlDevice minimumLinearTextureAlignmentForPixelFormat: mtlFmt];
@@ -2452,7 +2454,7 @@ void MVKPhysicalDevice::initLimits() {
 	_properties.limits.maxComputeWorkGroupSize[2] = wgSize.depth;
 	_properties.limits.maxComputeWorkGroupInvocations = max({wgSize.width, wgSize.height, wgSize.depth});
 
-	if ( [_mtlDevice respondsToSelector: @selector(maxThreadgroupMemoryLength)] ) {
+	if (@available(macos 10.13, ios 11.0, *)) {
 		_properties.limits.maxComputeSharedMemorySize = (uint32_t)_mtlDevice.maxThreadgroupMemoryLength;
 	} else {
 #if MVK_TVOS
@@ -2968,13 +2970,14 @@ void MVKPhysicalDevice::initMemoryProperties() {
 }
 
 bool MVKPhysicalDevice::getHasUnifiedMemory() {
-#if MVK_IOS_OR_TVOS
-	return true;
-#endif
 #if MVK_MACOS
-	return ([_mtlDevice respondsToSelector: @selector(hasUnifiedMemory)]
-			? _mtlDevice.hasUnifiedMemory : _mtlDevice.isLowPower);
+    if (@available(macos 10.15, ios 13.0, *)) {
+        return _mtlDevice.hasUnifiedMemory;
+    } else if (@available(macos 10.11, macCatalyst 13.0, *)){
+        return _mtlDevice.isLowPower;
+    }
 #endif
+	return true;
 }
 
 uint64_t MVKPhysicalDevice::getVRAMSize() {
@@ -2989,7 +2992,7 @@ uint64_t MVKPhysicalDevice::getVRAMSize() {
 
 uint64_t MVKPhysicalDevice::getRecommendedMaxWorkingSetSize() {
 #if MVK_MACOS
-	if ( [_mtlDevice respondsToSelector: @selector(recommendedMaxWorkingSetSize)]) {
+	if (@available(macos 10.12, macCatalyst 13.0, *)) {
 		return _mtlDevice.recommendedMaxWorkingSetSize;
 	}
 #endif
@@ -3003,7 +3006,7 @@ uint64_t MVKPhysicalDevice::getRecommendedMaxWorkingSetSize() {
 }
 
 uint64_t MVKPhysicalDevice::getCurrentAllocatedSize() {
-	if ( [_mtlDevice respondsToSelector: @selector(currentAllocatedSize)] ) {
+	if (@available(macos 10.13, ios 11.0, *)) {
 		return _mtlDevice.currentAllocatedSize;
 	}
 #if MVK_IOS_OR_TVOS
@@ -3020,8 +3023,11 @@ uint64_t MVKPhysicalDevice::getCurrentAllocatedSize() {
 // limit is imposed. This has been verified with testing up to 1M MTLSamplerStates.
 uint32_t MVKPhysicalDevice::getMaxSamplerCount() {
 	if (supportsMetalArgumentBuffers()) {
-		return ([_mtlDevice respondsToSelector: @selector(maxArgumentBufferSamplerCount)]
-				? (uint32_t)_mtlDevice.maxArgumentBufferSamplerCount : 1024);
+        if (@available(macos 10.14, ios 12.0, *)) {
+            return static_cast<uint32_t>(_mtlDevice.maxArgumentBufferSamplerCount);
+        } else {
+            return 1024;
+        }
 	} else {
 		return kMVKUndefinedLargeUInt32;
 	}
@@ -3281,11 +3287,12 @@ void MVKPhysicalDevice::logGPUInfo() {
 #endif
 #endif
 
-#if MVK_MACCAT
-	if ([_mtlDevice respondsToSelector: @selector(readWriteTextureSupport)] &&
-		_mtlDevice.readWriteTextureSupport == MTLReadWriteTextureTier2) {
-		logMsg += "\n\t\tmacOS Read-Write Texture Tier 2";
-	}
+#if MVK_MACCAT // FIXME: Not supposed to work with Mac Catalyst
+    if (@available(macos 10.13, ios 11.0, *)) {
+        if (_mtlDevice.readWriteTextureSupport == MTLReadWriteTextureTier2) {
+            logMsg += "\n\t\tmacOS Read-Write Texture Tier 2";
+        }
+    }
 #endif
 
 	NSUUID* nsUUID = [[NSUUID alloc] initWithUUIDBytes: _properties.pipelineCacheUUID];		// temp retain
@@ -4190,7 +4197,7 @@ VkDeviceSize MVKDevice::getVkFormatTexelBufferAlignment(VkFormat format, MVKBase
 	VkDeviceSize deviceAlignment = 0;
 	id<MTLDevice> mtlDev = getMTLDevice();
 	MVKPixelFormats* mvkPixFmts = getPixelFormats();
-	if ([mtlDev respondsToSelector: @selector(minimumLinearTextureAlignmentForPixelFormat:)]) {
+	if (@available(macos 10.13, ios 11.0, *)) {
 		MTLPixelFormat mtlPixFmt = mvkPixFmts->getMTLPixelFormat(format);
 		if (mvkPixFmts->getChromaSubsamplingPlaneCount(format) >= 2) {
 			// Use plane 1 to get the alignment requirements. In a 2-plane format, this will
@@ -4265,7 +4272,7 @@ MTLCompileOptions* MVKDevice::getMTLCompileOptions(bool requestFastMath, bool pr
 	mtlCompOpt.fastMathEnabled = (mvkConfig().fastMathEnabled == MVK_CONFIG_FAST_MATH_ALWAYS ||
 								  (mvkConfig().fastMathEnabled == MVK_CONFIG_FAST_MATH_ON_DEMAND && requestFastMath));
 #if MVK_XCODE_12
-	if ([mtlCompOpt respondsToSelector: @selector(setPreserveInvariance:)]) {
+	if (@available(macos 11.0, macCatalyst 14.0, ios 14.0, *)) {
 		[mtlCompOpt setPreserveInvariance: preserveInvariance];
 	}
 #endif
@@ -4300,16 +4307,18 @@ void MVKDevice::startAutoGPUCapture(MVKConfigAutoGPUCaptureScope autoGPUCaptureS
 
 		const char* filePath = mvkConfig().autoGPUCaptureOutputFilepath;
 		if (strlen(filePath)) {
-			if ([captureMgr respondsToSelector: @selector(supportsDestination:)] &&
-				[captureMgr supportsDestination: MTLCaptureDestinationGPUTraceDocument] ) {
+            bool captureDone {false};
+			if (@available(macos 10.15, ios 13.0, *)) {
+                if ([captureMgr supportsDestination: MTLCaptureDestinationGPUTraceDocument]) {
+                    NSString* expandedFilePath = [[NSString stringWithUTF8String: filePath] stringByExpandingTildeInPath];
+                    MVKLogInfo("Capturing GPU trace to file %s.", expandedFilePath.UTF8String);
 
-				NSString* expandedFilePath = [[NSString stringWithUTF8String: filePath] stringByExpandingTildeInPath];
-				MVKLogInfo("Capturing GPU trace to file %s.", expandedFilePath.UTF8String);
-
-				captureDesc.destination = MTLCaptureDestinationGPUTraceDocument;
-				captureDesc.outputURL = [NSURL fileURLWithPath: expandedFilePath];
-
-			} else {
+                    captureDesc.destination = MTLCaptureDestinationGPUTraceDocument;
+                    captureDesc.outputURL = [NSURL fileURLWithPath: expandedFilePath];
+                    captureDone = true;
+                }
+			}
+            if (!captureDone) {
 				reportError(VK_ERROR_FEATURE_NOT_PRESENT, "Capturing GPU traces to a file requires macOS 10.15 or iOS 13.0 and GPU capturing to be enabled. Falling back to Xcode GPU capture.");
 			}
 		} else {
@@ -4319,17 +4328,21 @@ void MVKDevice::startAutoGPUCapture(MVKConfigAutoGPUCaptureScope autoGPUCaptureS
 		// Suppress deprecation warnings for startCaptureWithXXX: on MacCatalyst.
 #		pragma clang diagnostic push
 #		pragma clang diagnostic ignored "-Wdeprecated-declarations"
-		if ([captureMgr respondsToSelector: @selector(startCaptureWithDescriptor:error:)] ) {
+		if (@available(macos 10.15, ios 13.0, *)) {
 			NSError *err = nil;
 			if ( ![captureMgr startCaptureWithDescriptor: captureDesc error: &err] ) {
 				reportError(VK_ERROR_INITIALIZATION_FAILED, "Failed to automatically start GPU capture session (Error code %li): %s", (long)err.code, err.localizedDescription.UTF8String);
 			}
-		} else if ([mtlCaptureObject conformsToProtocol:@protocol(MTLCommandQueue)]) {
-			[captureMgr startCaptureWithCommandQueue: mtlCaptureObject];
-		} else if ([mtlCaptureObject conformsToProtocol:@protocol(MTLDevice)]) {
-			[captureMgr startCaptureWithDevice: mtlCaptureObject];
-		}
-#		pragma clang diagnostic pop
+		} else if (@available(macos 10.13, ios 11.0, *)) {
+            if ([mtlCaptureObject conformsToProtocol:@protocol(MTLCommandQueue)]) {
+                [captureMgr startCaptureWithCommandQueue: mtlCaptureObject];
+            } else if ([mtlCaptureObject conformsToProtocol:@protocol(MTLDevice)]) {
+                [captureMgr startCaptureWithDevice: mtlCaptureObject];
+            }
+        } else {
+            MVKUnavailable(startCaptureWithCommandQueue);
+        }
+#	    pragma clang diagnostic pop
 	}
 }
 
@@ -4746,7 +4759,10 @@ MVKDevice::~MVKDevice() {
 #pragma mark Support functions
 
 uint64_t mvkGetRegistryID(id<MTLDevice> mtlDevice) {
-	return [mtlDevice respondsToSelector: @selector(registryID)] ? mtlDevice.registryID : 0;
+    if (@available(macos 10.13, ios 11.0, *)) {
+        return mtlDevice.registryID;
+    }
+    return 0;
 }
 
 // Since MacCatalyst does not support supportsBCTextureCompression, it is not possible
@@ -4759,7 +4775,7 @@ bool mvkSupportsBCTextureCompression(id<MTLDevice> mtlDevice) {
 #endif
 #if MVK_MACOS && !MVK_MACCAT
 #if MVK_XCODE_12
-	if ([mtlDevice respondsToSelector: @selector(supportsBCTextureCompression)]) {
+    if (@available(macos 10.11, *)) {
 		return mtlDevice.supportsBCTextureCompression;
 	}
 #endif

@@ -80,13 +80,13 @@ void MVKCmdDebugMarkerInsert::encode(MVKCommandEncoder* cmdEncoder) {
 #pragma mark Support functions
 
 void mvkPushDebugGroup(id<MTLCommandBuffer> mtlCmdBuffer, NSString* name) {
-	if ([mtlCmdBuffer respondsToSelector: @selector(pushDebugGroup:)]) {
+	if (@available(macos 10.13, ios 11.0, *)) {
 		[mtlCmdBuffer pushDebugGroup: name];
 	}
 }
 
 void mvkPopDebugGroup(id<MTLCommandBuffer> mtlCmdBuffer) {
-	if ([mtlCmdBuffer respondsToSelector: @selector(popDebugGroup)]) {
+	if (@available(macos 10.13, ios 11.0, *)) {
 		[mtlCmdBuffer popDebugGroup];
 	}
 }
