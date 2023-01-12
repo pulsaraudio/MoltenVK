@@ -522,19 +522,10 @@ void MVKCommandEncoder::beginMetalRenderPass(MVKCommandUse cmdUse) {
 		mtlRPDesc.visibilityResultBuffer = _pEncodingContext->visibilityResultBuffer->_mtlBuffer;
 	}
 
-	// Metal uses MTLRenderPassDescriptor properties renderTargetWidth, renderTargetHeight,
-	// and renderTargetArrayLength to preallocate tile memory storage on machines using tiled
-	// rendering. This memory preallocation is not necessary if we are not rendering to
-	// attachments, and some apps actively define extremely oversized framebuffers when they
-	// know they are not rendering to actual attachments, making this internal tile memory
-	// allocation even more wasteful, occasionally to the point of triggering OOM crashes.
-	bool hasAttachments = _attachments.size() > 0;
-	if (hasAttachments) {
-        if (@available(macos 10.15, ios 11.0, tvos 14.5, macCatalyst 13.0, *)) {
-            VkExtent2D fbExtent = getFramebufferExtent();
-            mtlRPDesc.renderTargetWidth = max(min(_renderArea.offset.x + _renderArea.extent.width, fbExtent.width), 1u);
-            mtlRPDesc.renderTargetHeight = max(min(_renderArea.offset.y + _renderArea.extent.height, fbExtent.height), 1u);
-        }
+    if (@available(macos 10.15, ios 11.0, tvos 14.5, macCatalyst 13.0, *)) {
+        VkExtent2D fbExtent = getFramebufferExtent();
+        mtlRPDesc.renderTargetWidth = max(min(_renderArea.offset.x + _renderArea.extent.width, fbExtent.width), 1u);
+        mtlRPDesc.renderTargetHeight = max(min(_renderArea.offset.y + _renderArea.extent.height, fbExtent.height), 1u);
     }
     if (_canUseLayeredRendering) {
         bool found3D = false, found2D = false;
