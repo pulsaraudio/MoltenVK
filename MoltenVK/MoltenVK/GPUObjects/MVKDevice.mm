@@ -1817,7 +1817,7 @@ void MVKPhysicalDevice::initMetalFeatures() {
         _metalFeatures.rasterOrderGroups = _mtlDevice.areRasterOrderGroupsSupported;
     }
 #if MVK_XCODE_12
-	if (@available(macos 10.11, ios 14.0, *)) {
+	if (@available(macos 11.0, ios 14.0, *)) {
 		_metalFeatures.pullModelInterpolation = _mtlDevice.supportsPullModelInterpolation;
 	}
 #endif
@@ -1956,7 +1956,7 @@ void MVKPhysicalDevice::initMetalFeatures() {
 	checkSupportsMTLCounterSamplingPoint(Stage, PIPELINE_STAGE);
 #endif
 
-#if MVK_MACOS
+#if 0 && MVK_MACOS // FIXME: I've a problem with this on 10.15 that crashes initCounterSets
 	// On macOS, if we couldn't query supported sample points (on macOS 11),
 	// but the platform can support immediate-mode sample points, indicate that here.
 	if (!_metalFeatures.counterSamplingPoints && mvkOSVersionIsAtLeast(10.15) && !supportsMTLGPUFamily(Apple1)) {  \

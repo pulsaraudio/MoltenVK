@@ -152,7 +152,7 @@ VkResult MVKQueue::waitIdle(MVKCommandUse cmdUse) {
 id<MTLCommandBuffer> MVKQueue::getMTLCommandBuffer(MVKCommandUse cmdUse, bool retainRefs) {
 	id<MTLCommandBuffer> mtlCmdBuff = nil;
 #if MVK_XCODE_12
-	if (@available(macos 10.11, ios 14.0, *)) {
+	if (@available(macos 11.0, ios 14.0, *)) {
 		MTLCommandBufferDescriptor* mtlCmdBuffDesc = [MTLCommandBufferDescriptor new];	// temp retain
 		mtlCmdBuffDesc.retainedReferences = retainRefs;
 		if (mvkConfig().debugMode) {
@@ -419,7 +419,7 @@ void MVKQueueCommandBufferSubmission::commitActiveMTLCommandBuffer(bool signalCo
 		}
 #if MVK_XCODE_12
 		if (mvkConfig().debugMode) {
-            if (@available(macos 10.11, ios 14.0, *)) {
+            if (@available(macos 11.0, ios 14.0, *)) {
                 bool isFirstMsg = true;
                 for (id<MTLFunctionLog> log in mtlCB.logs) {
                     if (isFirstMsg) {
