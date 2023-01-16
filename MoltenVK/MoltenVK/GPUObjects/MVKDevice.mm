@@ -4775,7 +4775,7 @@ bool mvkSupportsBCTextureCompression(id<MTLDevice> mtlDevice) {
 #endif
 #if MVK_MACOS && !MVK_MACCAT
 #if MVK_XCODE_12
-    if (@available(macos 10.11, *)) {
+    if (@available(macos 11.0, *)) {
 		return mtlDevice.supportsBCTextureCompression;
 	}
 #endif
