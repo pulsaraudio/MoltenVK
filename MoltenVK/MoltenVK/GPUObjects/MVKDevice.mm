@@ -4244,7 +4244,9 @@ id<MTLSamplerState> MVKDevice::getDefaultMTLSamplerState() {
 		if ( !_defaultMTLSamplerState ) {
 			@autoreleasepool {
 				MTLSamplerDescriptor* mtlSampDesc = [[MTLSamplerDescriptor new] autorelease];
-				mtlSampDesc.supportArgumentBuffers = isUsingMetalArgumentBuffers();
+                if (@available(macos 10.13, ios 11.0, *)) {
+                    mtlSampDesc.supportArgumentBuffers = isUsingMetalArgumentBuffers();
+                }
 				_defaultMTLSamplerState = [getMTLDevice() newSamplerStateWithDescriptor: mtlSampDesc];	// retained
 			}
 		}

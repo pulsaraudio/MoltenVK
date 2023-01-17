@@ -141,7 +141,7 @@
 }
 #endif
 
-- (NSString *) localizedNameMVK
+- (NSString *) screenNameMVK
 {
     if (@available(macos 10.15, *)) {
         return self.screenMVK.localizedName;

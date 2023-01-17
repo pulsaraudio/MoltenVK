@@ -402,7 +402,7 @@ void MVKSwapchain::initSurfaceImages(const VkSwapchainCreateInfoKHR* pCreateInfo
 		_presentableImages.push_back(_device->createPresentableSwapchainImage(&imgInfo, this, imgIdx, NULL));
 	}
 
-	NSString* screenName = _mtlLayer.localizedNameMVK;
+	NSString* screenName = _mtlLayer.screenNameMVK;
     MVKLogInfo("Created %d swapchain images with initial size (%d, %d) and contents scale %.1f for screen %s.",
 			   imgCnt, imgExtent.width, imgExtent.height, _mtlLayer.contentsScale, screenName.UTF8String);
 }
