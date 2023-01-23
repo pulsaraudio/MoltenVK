@@ -30,6 +30,14 @@
 
 using namespace std;
 
+MVKConfigLogLevel mvkSetLogLevel(MVKConfigLogLevel logLevel)
+{
+    MVKConfiguration& config = const_cast<MVKConfiguration&>(mvkConfig());
+    MVKConfigLogLevel oldLogLevel = config.logLevel;
+    config.logLevel = logLevel;
+    return oldLogLevel;
+}
+
 // If pSrc and pDst are not null, copies at most *pCopySize bytes from the contents of the
 // source struct to the destination struct, and sets *pCopySize to the number of bytes copied,
 // which is the smaller of the original value of *pCopySize and the actual size of the struct.

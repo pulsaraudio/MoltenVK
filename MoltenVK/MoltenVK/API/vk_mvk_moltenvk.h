@@ -1061,6 +1061,11 @@ typedef void (VKAPI_PTR *PFN_vkGetMTLBufferMVK)(VkBuffer buffer, id<MTLBuffer>* 
 typedef void (VKAPI_PTR *PFN_vkGetMTLCommandQueueMVK)(VkQueue queue, id<MTLCommandQueue>* pMTLCommandQueue);
 #endif // __OBJC__
 
+#pragma mark Logging
+
+/** Sets the current logging level and returns the previous level */
+MVKConfigLogLevel mvkSetLogLevel(MVKConfigLogLevel logLevel);
+
 
 #pragma mark -
 #pragma mark Function prototypes
